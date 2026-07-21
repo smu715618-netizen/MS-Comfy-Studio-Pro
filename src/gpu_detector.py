@@ -1,9 +1,8 @@
-"""
-GPU 检测模块
+"""GPU 检测模块
 
-检测系统中可用的 GPU 设备，优先检测 Intel Arc XPU。
-支持以下 GPU 类型：
-- Intel Arc (DirectML / XPU)
+检测系统中可用的 GPU 设备，以 Intel Arc XPU 为主要路线，DirectML 为备用路线。
+支持以下 GPU 类型（按优先级）：
+- Intel Arc (XPU / DirectML)
 - NVIDIA CUDA
 - AMD ROCm
 - CPU Only（无 GPU）
@@ -52,7 +51,12 @@ class GPUDetector:
     GPU 检测器
 
     检测系统中所有可用的 GPU 设备，返回详细信息。
-    优先检测 Intel Arc，其次是 NVIDIA CUDA，最后是 AMD ROCm。
+    检测优先级（按路线）：
+    1. Intel Arc XPU (主路线)
+    2. Intel Arc DirectML (备用路线)
+    3. NVIDIA CUDA
+    4. AMD ROCm
+    5. CPU Only
     """
 
     def detect(self) -> GPUInfo:
@@ -106,26 +110,30 @@ class GPUDetector:
         return info
 
     def _detect_intel(self) -> GPUInfo:
-        """检测 Intel Arc GPU"""
+        """
+        检测 Intel Arc GPU
+
+        优先级:
+        1. Intel XPU (主路线) - 使用 PyTorch XPU 后端，性能最优
+        2. DirectML (备用路线) - 使用 DirectX 12 抽象层，兼容性好
+        """
         info = GPUInfo()
         info.vendor = "Intel Corporation"
 
-        # 方法 1: 通过 Python 检测 torch
+        # 优先级 1: 检测 Intel XPU (主路线)
         try:
             import torch
-            info.xpu_supported = hasattr(torch, "xpu") and torch.xpu.is_available()
-            info.directml_supported = True  # DirectML 总是可用（Windows）
-
-            if info.xpu_supported:
+            if hasattr(torch, "xpu") and torch.xpu.is_available():
+                info.xpu_supported = True
                 info.name = "Intel Arc (XPU)"
                 info.memory_total_mb = torch.xpu.get_device_properties(0).total_memory // (1024 * 1024)
                 info.details = {"torch_version": torch.__version__, "xpu_available": True}
+                logger.info(f"检测到 Intel Arc XPU (主路线): {info.name}")
                 return info
-
         except ImportError:
-            pass  # PyTorch 未安装
+            pass  # PyTorch 未安装，跳过 XPU 检测
 
-        # 方法 2: 通过 DirectX 检测 DirectML
+        # 优先级 2: 检测 DirectML (备用路线)
         try:
             result = subprocess.run(
                 ["powershell", "-Command",
@@ -134,8 +142,8 @@ class GPUDetector:
             )
             output = result.stdout.strip()
             if "intel" in output.lower():
-                info.name = "Intel Arc (DirectML)"
                 info.directml_supported = True
+                info.name = "Intel Arc (DirectML)"
                 # AdapterRAM 以字节为单位
                 ram_str = output.split("\n")[-1].strip() if "\n" in output else ""
                 if ram_str:
@@ -143,23 +151,25 @@ class GPUDetector:
                         info.memory_total_mb = int(ram_str) // (1024 * 1024)
                     except ValueError:
                         pass
-                info.details = {"detection_method": "directx"}
+                info.details = {"detection_method": "directx", "fallback_from_xpu": True}
+                logger.info(f"检测到 Intel Arc DirectML (备用路线): {info.name}")
                 return info
         except Exception as e:
             logger.debug(f"DirectX 检测失败: {e}")
 
-        # 方法 3: 通过 WMI 检测
+        # 备用: 通过 WMI 检测
         try:
             import wmi
             c = wmi.WMI()
             for gpu in c.Win32_VideoController():
                 if "intel" in gpu.Name.lower() or "arc" in gpu.Name.lower():
+                    info.directml_supported = True
                     info.name = gpu.Name
                     if gpu.AdapterRAM:
                         info.memory_total_mb = gpu.AdapterRAM // (1024 * 1024)
                     info.driver_version = gpu.DriverVersion
-                    info.directml_supported = True
-                    info.details = {"detection_method": "wmi"}
+                    info.details = {"detection_method": "wmi", "fallback_from_xpu": True}
+                    logger.info(f"检测到 Intel Arc (备用路线): {info.name}")
                     return info
         except ImportError:
             pass  # wmi 模块未安装

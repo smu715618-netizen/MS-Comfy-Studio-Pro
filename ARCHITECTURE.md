@@ -62,9 +62,9 @@ default.yaml → xpu.yaml → local.yaml
 
 ### 5. GPU 检测 (src/gpu_detector.py)
 
-检测顺序：
-1. Intel Arc XPU
-2. Intel Arc DirectML
+检测顺序（按路线优先级）：
+1. Intel Arc XPU (主路线) — PyTorch XPU 后端，性能最优
+2. Intel Arc DirectML (备用路线) — DirectX 12 抽象层，兼容性好
 3. NVIDIA CUDA
 4. AMD ROCm
 5. CPU Only

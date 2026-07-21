@@ -9,7 +9,7 @@
 
 ## 简介
 
-MS Comfy Studio Pro 是一个面向企业的 ComfyUI 整合分发平台，专为 Intel Arc A750（8GB VRAM）显卡优化。
+MS Comfy Studio Pro 是一个面向企业的 ComfyUI 整合分发平台，目标优化在 Intel Arc A750（8GB VRAM）显卡上的运行效果。
 
 **目标用户：**
 - 商业修图工作室
@@ -118,4 +118,4 @@ MS-Comfy-Studio-Pro/
 
 ## 技术支持
 
-本项目针对 Intel Arc A750 进行了深度优化，确保所有默认工作流在 8GB VRAM 下稳定运行。
+本项目针对 Intel Arc A750 进行了目标优化，确保所有默认工作流在 8GB VRAM 下的稳定运行。
