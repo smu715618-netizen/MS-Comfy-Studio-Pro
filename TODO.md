@@ -28,9 +28,36 @@
 - [x] DEPLOYMENT.md
 - [x] CHANGELOG.md
 - [x] DEVELOPMENT.md
+- [x] HARDWARE_PROFILE.md
+- [x] MODEL_POLICY.md
+- [x] TODO.md
 - [x] 完整测试套件（6 个测试模块）
 - [x] Windows 安装脚本（setup.bat/ps1）
 - [x] GitHub Actions CI/CD
+
+---
+
+## 已完成 (v0.2.0 - 第二阶段)
+
+### 工作流系统完善 ✅
+- [x] 节点类型系统 (src/workflows/nodes.py)
+- [x] 核心节点签名预定义 (src/workflows/signatures.py)
+  - CheckpointLoaderSimple, KSampler, CLIPTextEncode
+  - EmptyLatentImage, VAEDecode, SaveImage, UpscaleImage
+  - ControlNetApply, ImageScale, LoadImage
+- [x] 工作流 JSON 解析器 (src/workflows/parser.py)
+  - Workflow/NodeInstance/Connection 数据类
+  - 序列化/反序列化
+  - 参数校验
+- [x] 参数绑定引擎 (src/workflows/bindings.py)
+  - 直接值绑定 / 控件绑定 / 表达式绑定
+  - 变更监听器
+  - 序列化/反序列化
+
+### 测试 ✅
+- [x] 工作流节点签名测试
+- [x] 参数绑定引擎测试
+- [x] 工作流序列化测试
 
 ---
 
