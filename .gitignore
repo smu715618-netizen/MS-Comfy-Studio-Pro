@@ -1,0 +1,119 @@
+# MS Comfy Studio Pro - .gitignore
+
+###############################################################################
+# Python
+###############################################################################
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+.venv/
+env/
+.env/
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+*.tar.gz
+*.zip
+
+###############################################################################
+# IDE
+###############################################################################
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+###############################################################################
+# Logs
+###############################################################################
+data/logs/
+*.log
+logs/
+
+###############################################################################
+# ComfyUI (will be cloned during setup)
+###############################################################################
+comfyui/
+comfyui/.git/
+
+###############################################################################
+# Model data (downloaded on demand)
+###############################################################################
+data/models/checkpoints/
+data/models/vae/
+data/models/clip/
+data/models/unet/
+data/models/lora/
+data/models/controlnet/
+data/models/upscale/
+data/models/embedding/
+
+# Only keep README to preserve directory structure
+!data/models/checkpoints/.gitkeep
+!data/models/vae/.gitkeep
+!data/models/clip/.gitkeep
+!data/models/unet/.gitkeep
+!data/models/lora/.gitkeep
+!data/models/controlnet/.gitkeep
+!data/models/upscale/.gitkeep
+!data/models/embedding/.gitkeep
+
+###############################################################################
+# Workflows
+###############################################################################
+data/workflows/user/
+
+###############################################################################
+# Config (user-specific overrides)
+###############################################################################
+configs/local.yaml
+
+###############################################################################
+# Generated files
+###############################################################################
+*.pyc
+*.pyo
+
+###############################################################################
+# Assets (icons, logos)
+###############################################################################
+assets/icons/*.png
+assets/icons/*.ico
+assets/logos/*.png
+assets/logos/*.svg

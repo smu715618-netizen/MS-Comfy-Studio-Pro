@@ -1,0 +1,13 @@
+# MS Comfy Studio Pro - Intel XPU / DirectML 依赖
+# 用于 Intel Arc A750 GPU 加速
+
+# PyTorch with XPU support
+# 注意：Intel Arc 推荐使用 DirectML 后端
+torch>=2.2.0
+torch-directml>=0.2.0
+
+# ComfyUI（从源码安装）
+# 安装时会自动处理 ComfyUI 的依赖
+
+# 可选：Intel Extension for PyTorch（如可用）
+# intel-extension-for-pytorch>=2.2.0

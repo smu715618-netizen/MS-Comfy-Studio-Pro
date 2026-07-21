@@ -1,0 +1,149 @@
+# 默认配置文件
+# 集中管理所有配置项
+
+# 应用基本信息
+app:
+  name: "MS Comfy Studio Pro"
+  version: "0.1.0"
+  domain: "MCSP"
+  default_locale: "zh-CN"
+  available_locales:
+    - "zh-CN"
+    - "en-US"
+
+# 路径配置
+paths:
+  # 项目根目录（自动检测）
+  project_root: "."
+  # 数据根目录
+  data_dir: "data"
+  # 模型存储目录
+  models_dir: "data/models"
+  # 工作流目录
+  workflows_dir: "data/workflows"
+  # 插件目录
+  plugins_dir: "data/plugins"
+  # 日志目录
+  logs_dir: "data/logs"
+  # ComfyUI 目录
+  comfyui_dir: "comfyui"
+  # 虚拟环境目录
+  venv_dir: "venv"
+  # 配置文件目录
+  configs_dir: "configs"
+
+# ComfyUI 配置
+comfyui:
+  # ComfyUI 源仓库
+  repo_url: "https://github.com/comfyanonymous/ComfyUI.git"
+  # 启动端口
+  port: 8188
+  # 绑定地址
+  host: "127.0.0.1"
+  # 是否自动打开浏览器
+  auto_open_browser: false
+  # 额外启动参数
+  extra_args: []
+
+# GPU 配置
+gpu:
+  # 首选 GPU 类型: auto, intel_xpu, directml, cuda, amd
+  preferred_type: "intel_xpu"
+  # DirectML 设备索引
+  directml_device: 0
+  # PyTorch 设备
+  device: "xpu"
+  # 显存优化策略
+  memory_optimization:
+    # 启用显存碎片整理
+    enable_gc: true
+    # 启用渐进式渲染（降低 VRAM 占用）
+    progressive_rendering: true
+    # 最大并发批次大小
+    max_batch_size: 1
+    # 启用 FP16 精度
+    fp16_precision: true
+    # 启用 attention 切片以减少 VRAM
+    attention_slicing: true
+    # 启用 VAE chunk 模式
+    vae_chunk_size: 4
+
+# 日志配置
+logging:
+  # 日志级别: DEBUG, INFO, WARNING, ERROR, CRITICAL
+  level: "INFO"
+  # 日志格式
+  format: "%(asctime)s [%(levelname)s] %(name)s: %(message)s"
+  # 日期格式
+  date_format: "%Y-%m-%d %H:%M:%S"
+  # 日志文件最大大小（MB）
+  max_size_mb: 10
+  # 保留的日志文件数量
+  backup_count: 5
+  # 是否同时输出到控制台
+  console_output: true
+
+# 自动更新配置
+updater:
+  # 是否启用自动更新检查
+  enabled: true
+  # 检查间隔（小时）
+  check_interval_hours: 24
+  # 更新服务器 URL
+  update_server: ""
+  # 是否自动下载更新
+  auto_download: false
+  # 是否自动安装更新
+  auto_install: false
+
+# 模型下载配置
+models:
+  # 默认下载源
+  default_source: "huggingface"
+  # 下载超时（秒）
+  download_timeout: 3600
+  # 最大并发下载数
+  max_concurrent_downloads: 2
+  # 下载重试次数
+  retry_count: 3
+  # 模型来源列表
+  sources:
+    huggingface:
+      name: "Hugging Face"
+      base_url: "https://huggingface.co"
+    civitai:
+      name: "Civitai"
+      base_url: "https://civitai.com"
+
+# 节点配置
+nodes:
+  # 内置节点启用
+  builtin_enabled: true
+  # 社区节点启用
+  community_enabled: true
+  # 节点缓存过期时间（秒）
+  cache_ttl: 3600
+
+# 工作流配置
+workflows:
+  # 默认工作流模板
+  default_templates:
+    - "portrait_retouch"
+    - "id_photo"
+    - "upscale"
+    - "inpaint"
+  # 工作流自动保存
+  auto_save: true
+  # 自动保存间隔（分钟）
+  auto_save_interval: 5
+
+# 性能配置
+performance:
+  # 线程池大小
+  thread_pool_size: 4
+  # 异步 I/O 启用
+  aio_enabled: true
+  # 缓存启用
+  cache_enabled: true
+  # 缓存大小限制（MB）
+  cache_max_size_mb: 512

@@ -1,0 +1,40 @@
+# Intel XPU / DirectML 专用配置
+# 覆盖 default.yaml 中的 GPU 相关设置
+
+gpu:
+  preferred_type: "intel_xpu"
+  directml_device: 0
+  device: "xpu"
+  memory_optimization:
+    enable_gc: true
+    progressive_rendering: true
+    max_batch_size: 1
+    fp16_precision: true
+    attention_slicing: true
+    vae_chunk_size: 4
+
+# Intel Arc A750 特定优化
+xpu:
+  # 启用 Intel GPU 推理运行时
+  enable_intel_runtime: true
+  # DirectML 性能模式: balanced, performance, power_saving
+  performance_mode: "balanced"
+  # 共享内存上限（MB），建议设置为物理内存的 50%
+  shared_memory_limit_mb: 4096
+  # 启用 GPU 虚拟化层
+  enable_virtualization: true
+  # Intel Arc 驱动版本检查
+  min_driver_version: "101.4284"
+
+# 针对 8GB VRAM 的额外限制
+memory:
+  # 为系统预留的显存（MB）
+  system_reserve_mb: 512
+  # 为 ComfyUI 前端预留的显存（MB）
+  ui_reserve_mb: 256
+  # 最大可用推理显存（MB）
+  max_inference_mb: 7168
+  # 启用显存预警阈值（百分比）
+  vram_warning_threshold: 85
+  # 启用显存紧急阈值（百分比）
+  vram_critical_threshold: 95

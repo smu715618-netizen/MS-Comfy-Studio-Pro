@@ -1,0 +1,46 @@
+# ============================================================
+# GitHub Actions Release 配置
+# ============================================================
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $env:GITHUB_OUTPUT
+
+      - name: Create release notes
+        run: |
+          echo "# Release ${{ steps.version.outputs.VERSION }}" > RELEASE.md
+          echo "" >> RELEASE.md
+          Get-Content CHANGELOG.md | Select-Object -First 50 >> RELEASE.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            README.md
+            CHANGELOG.md
+          body_path: RELEASE.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,34 @@
+# 定义 Git 属性
+
+# 确保换行符一致性
+* text=auto
+
+# Python 文件 - LF 换行
+*.py text eol=lf
+
+# YAML 文件 - LF 换行
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# JSON 文件 - 不转换换行符
+*.json text eol=crlf
+
+# Batch 文件 - CRLF 换行（Windows 必需）
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# PowerShell 文件 - CRLF 换行
+*.ps1 text eol=crlf
+
+# Markdown 文件 - 自动检测
+*.md text
+
+# 图标文件 - 二进制
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+
+# 可执行文件 - 二进制
+*.exe binary
+*.dll binary
