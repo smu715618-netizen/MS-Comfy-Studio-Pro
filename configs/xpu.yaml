@@ -22,7 +22,7 @@ xpu:
   # 共享内存上限（MB），建议设置为物理内存的 50%
   shared_memory_limit_mb: 4096
   # 启用 GPU 虚拟化层
-  enable_virtualization: true
+  # enable_virtualization: false  (已禁用)
   # Intel Arc 驱动版本检查
   min_driver_version: "101.4284"
 

@@ -20,7 +20,7 @@ MS Comfy Studio Pro 是一个面向企业的 ComfyUI 整合分发平台，目标
 - 局部重绘与高清修复
 
 **核心特性：**
-- Intel Arc XPU 原生加速支持（DirectML）
+- Intel Arc XPU/DirectML 加速支持（XPU 主路线 / DirectML 备用）
 - 企业级模块化架构
 - 模型按需下载与管理
 - 工作流模板系统
@@ -106,7 +106,7 @@ MS-Comfy-Studio-Pro/
 ## 文档
 
 - [安装指南](INSTALL.md)
-- [架构设计](ARCHITECTURE.md)
+- [架构设计](docs/ARCHITECTURE.md)
 - [部署说明](DEPLOYMENT.md)
 - [开发文档](docs/DEVELOPMENT.md)
 - [变更日志](CHANGELOG.md)
@@ -118,4 +118,4 @@ MS-Comfy-Studio-Pro/
 
 ## 技术支持
 
-本项目针对 Intel Arc A750 进行了目标优化，确保所有默认工作流在 8GB VRAM 下的稳定运行。
+本项目针对 Intel Arc A750 进行了目标优化，在 8GB VRAM 下实现稳定运行。
