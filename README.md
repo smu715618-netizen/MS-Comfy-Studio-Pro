@@ -111,6 +111,10 @@ MS-Comfy-Studio-Pro/
 - [开发文档](docs/DEVELOPMENT.md)
 - [变更日志](CHANGELOG.md)
 - [TODO](TODO.md)
+- [硬件配置](docs/HARDWARE_PROFILE.md)
+- [模型策略](docs/MODEL_POLICY.md)
+- [平台支持](PLATFORM_SUPPORT.md)
+- [项目路线图](docs/ROADMAP.md)
 
 ## 许可证
 
