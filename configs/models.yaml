@@ -1,0 +1,83 @@
+# 模型管理配置
+# 集中管理所有模型目录、分类和下载设置
+
+# 默认模型根目录（相对于项目根）
+model_root: "data/models"
+
+# 支持的模型类型
+model_types:
+  checkpoints:
+    display_name: "Checkpoints"
+    subfolder: "checkpoints"
+    supported_formats: [".safetensors", ".ckpt", ".bin"]
+    default_source: "huggingface"
+  lora:
+    display_name: "LoRA"
+    subfolder: "lora"
+    supported_formats: [".safetensors", ".ckpt"]
+    default_source: "huggingface"
+  vae:
+    display_name: "VAE"
+    subfolder: "vae"
+    supported_formats: [".safetensors", ".ckpt"]
+    default_source: "huggingface"
+  clip:
+    display_name: "CLIP"
+    subfolder: "clip"
+    supported_formats: [".safetensors", ".pt", ".bin"]
+    default_source: "huggingface"
+  unet:
+    display_name: "UNet"
+    subfolder: "unet"
+    supported_formats: [".safetensors", ".bin"]
+    default_source: "huggingface"
+  controlnet:
+    display_name: "ControlNet"
+    subfolder: "controlnet"
+    supported_formats: [".safetensors", ".pt"]
+    default_source: "huggingface"
+  upscale:
+    display_name: "超分辨率"
+    subfolder: "upscale"
+    supported_formats: [".safetensors", ".pt", ".onnx"]
+    default_source: "huggingface"
+  embedding:
+    display_name: "Embedding"
+    subfolder: "embedding"
+    supported_formats: [".safetensors", ".pt"]
+    default_source: "huggingface"
+  ipadapter:
+    display_name: "IPAdapter"
+    subfolder: "ipadapter"
+    supported_formats: [".safetensors", ".pt"]
+    default_source: "huggingface"
+  # 未来扩展预留
+  textual_inversion:
+    display_name: "Textual Inversion"
+    subfolder: "textual_inversion"
+    supported_formats: [".safetensors", ".pt"]
+    default_source: "huggingface"
+
+# 下载设置
+downloads:
+  max_concurrent: 2
+  timeout_seconds: 3600
+  retry_count: 3
+  retry_delay_seconds: 5
+  chunk_size_mb: 8
+  use_resume: true  # 支持断点续传
+  proxy: ""  # 可选代理
+
+# 镜像源配置（可选，优先使用官方源）
+mirrors:
+  huggingface:
+    primary: "https://huggingface.co"
+    fallback: ""
+  civitai:
+    primary: "https://civitai.com"
+    fallback: ""
+
+# 索引缓存
+index:
+  cache_ttl_seconds: 3600
+  auto_scan_on_start: false
