@@ -363,7 +363,6 @@ class MainWindow(QMainWindow):
         gpu = data.get("gpu", {})
         sysd = data.get("system", {})
         comfy = data.get("comfyui", {})
-        health = data.get("health", {})
 
         # 更新卡片
         self._safe_set(self._card_labels.get("GPU"),
@@ -376,10 +375,7 @@ class MainWindow(QMainWindow):
                        "已安装" if comfy.get("installed") else "未安装")
 
         # GPU 状态栏
-        self.status_bar.setStatusTip("")
-        gpu_type = gpu.get("type", "--")
-        self._sb_gpu.setText(f"GPU: {gpu_name} ({gpu_mem}MB)")
-        self._sb_gpu.setText(f"GPU: {gpu_type}")
+        self._sb_gpu.setText(f"GPU: {gpu.get('type', '--')}")
 
         # 推荐
         rec_lines = []
@@ -411,9 +407,6 @@ class MainWindow(QMainWindow):
             rec_lines.append("\n🔴 发生错误，请查看日志")
 
         self._rec_label.setText("\n".join(rec_lines))
-
-        # 自动切换到概览页（如果当前在日志页且刚启动）
-        # （不强制切换，由用户决定）
 
         # 更新按钮状态
         running = self._launcher and self._launcher.is_running()
