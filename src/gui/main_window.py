@@ -1,32 +1,34 @@
 """
-主窗口
+主窗口 — Launcher GUI
 
-启动器面板的主窗口。
-包含侧边栏导航和主内容区域。
+启动器面板的主界面，连接 src.launcher.Launcher 提供：
+- 首页 Dashboard（GPU/CPU/内存/ComfyUI 状态卡片）
+- 实时日志面板
+- 启动/停止 ComfyUI 按钮
+- 健康检查
+
+不加载 ComfyUI、模型、节点等模块（按需加载）。
+只加载 launcher + 必需的 Qt。
 """
 
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QStackedWidget, QFrame, QLabel, QPushButton,
-    QToolBar, QStatusBar, QMessageBox,
+    QToolBar, QStatusBar, QMessageBox, QTabWidget,
+    QGroupBox, QGridLayout, QTextEdit, QProgressBar,
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QIcon, QAction
+from PyQt6.QtCore import Qt, QSize, QTimer
+from PyQt6.QtGui import QFont
 
 from src.__version__ import __title__, __version__
+from src.launcher import Launcher, LauncherState
+
+# ── 字体 ──────────────────────────────────────
+_FONT_FAMILY = "Microsoft YaHei UI" if Qt.fonts().isFontAvailable("Microsoft YaHei UI") else "Segoe UI"
 
 
 class MainWindow(QMainWindow):
-    """
-    主窗口类
-
-    启动器面板的主界面。
-    包含：
-    - 顶部工具栏
-    - 左侧导航栏
-    - 中间内容区域（堆叠）
-    - 底部状态栏
-    """
+    """主窗口 — Launcher 控制面板"""
 
     def __init__(self):
         super().__init__()
@@ -34,214 +36,392 @@ class MainWindow(QMainWindow):
         self.resize(1100, 700)
         self.setMinimumSize(900, 600)
 
-        # 初始化 UI
+        # 核心：启动器实例（延迟初始化，首次需要时才创建）
+        self._launcher: Launcher | None = None
+        self._dashboard_timer: QTimer | None = None
+
         self._init_ui()
 
+    # ── UI 构建 ──────────────────────────────
+
     def _init_ui(self):
-        """初始化用户界面"""
-        # 中心部件
         central = QWidget()
         self.setCentralWidget(central)
 
-        main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(0, 0, 0, 0)
-        main_layout.setSpacing(0)
+        layout = QVBoxLayout(central)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(0)
 
-        # 顶部工具栏
+        # ---- 工具栏 ----
         toolbar = QToolBar("Main Toolbar")
         toolbar.setMovable(False)
         toolbar.setContextMenuPolicy(Qt.ContextMenuPolicy.PreventContextMenu)
-        toolbar.setIconSize(QSize(20, 20))
+        toolbar.setIconSize(QSize(18, 18))
         self.addToolBar(toolbar)
+        self._toolbar_init(toolbar)
 
-        self._init_toolbar(toolbar)
+        # ---- 主体 ----
+        body = QHBoxLayout()
+        body.setContentsMargins(0, 0, 0, 0)
+        body.setSpacing(0)
 
-        # 主体布局
-        body_layout = QHBoxLayout()
-        body_layout.setContentsMargins(0, 0, 0, 0)
-        body_layout.setSpacing(0)
+        # 左侧导航
+        nav = self._nav_frame()
+        body.addWidget(nav)
 
-        # 侧边导航
-        self.nav_frame = self._create_nav_frame()
-        body_layout.addWidget(self.nav_frame)
-
-        # 内容区域
+        # 右侧内容
         self.content_stack = QStackedWidget()
-        self._init_content_pages()
-        body_layout.addWidget(self.content_stack)
+        self._build_pages()
+        body.addWidget(self.content_stack)
 
-        main_layout.addWidget(toolbar)
-        main_layout.addLayout(body_layout)
+        layout.addLayout(body)
 
-        # 状态栏
-        self.status_bar = QStatusBar()
+        # 底部状态栏
+        self.status_bar = self._status_bar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪")
+        self.status_bar.showMessage("就绪 — 点击「刷新」或 「启动 ComfyUI」开始")
 
-    def _init_toolbar(self, toolbar):
-        """初始化工具栏按钮"""
-        # 启动 ComfyUI
-        self.btn_start = QAction("▶ 启动 ComfyUI", self)
-        self.btn_start.setToolTip("启动 ComfyUI 服务")
-        self.btn_start.triggered.connect(self._on_start_comfy)
-        toolbar.addAction(self.btn_start)
+    # ── 工具栏 ───────────────────────────────
 
-        # 停止 ComfyUI
-        self.btn_stop = QAction("■ 停止", self)
-        self.btn_stop.setToolTip("停止 ComfyUI 服务")
-        self.btn_stop.setEnabled(False)
-        self.btn_stop.triggered.connect(self._on_stop_comfy)
-        toolbar.addAction(self.btn_stop)
+    def _toolbar_init(self, toolbar):
+        self._btn_start = QAction("▶ 启动", self)
+        self._btn_start.setToolTip("启动 ComfyUI（自动检测硬件配置）")
+        self._btn_start.triggered.connect(self._on_start)
+        toolbar.addAction(self._btn_start)
 
-        toolbar.addSeparator()
-
-        # 刷新
-        self.btn_refresh = QAction("↻ 刷新", self)
-        self.btn_refresh.setToolTip("刷新系统状态")
-        self.btn_refresh.triggered.connect(self._on_refresh)
-        toolbar.addAction(self.btn_refresh)
+        self._btn_stop = QAction("■ 停止", self)
+        self._btn_stop.setToolTip("停止 ComfyUI")
+        self._btn_stop.setEnabled(False)
+        self._btn_stop.triggered.connect(self._on_stop)
+        toolbar.addAction(self._btn_stop)
 
         toolbar.addSeparator()
 
-        # 设置
-        self.btn_settings = QAction("⚙️ 设置", self)
-        self.btn_settings.setToolTip("打开设置")
-        self.btn_settings.triggered.connect(self._on_settings)
-        toolbar.addAction(self.btn_settings)
+        self._btn_refresh = QAction("↻ 刷新", self)
+        self._btn_refresh.setToolTip("刷新仪表盘数据")
+        self._btn_refresh.triggered.connect(self._on_refresh)
+        toolbar.addAction(self._btn_refresh)
 
-        # 帮助
-        self.btn_help = QAction("ℹ️ 帮助", self)
-        self.btn_help.setToolTip("查看帮助")
-        self.btn_help.triggered.connect(self._on_help)
-        toolbar.addAction(self.btn_help)
+        toolbar.addSeparator()
 
-    def _create_nav_frame(self) -> QFrame:
-        """创建侧边导航栏"""
+        self._btn_health = QAction("🏥 健康", self)
+        self._btn_health.setToolTip("运行系统健康检查")
+        self._btn_health.triggered.connect(self._on_health)
+        toolbar.addAction(self._btn_health)
+
+    # ── 侧边导航 ─────────────────────────────
+
+    def _nav_frame(self) -> QFrame:
         nav = QFrame()
-        nav.setFixedWidth(180)
-        nav.setObjectName("navFrame")
+        nav.setFixedWidth(160)
         nav.setStyleSheet("""
-            QFrame#navFrame {
-                background-color: #1e1e2e;
-                border-right: 1px solid #313244;
+            QFrame { background-color:#181825; border-right:1px solid #313244; }
+            QFrame QPushButton {
+                text-align:left; padding:9px 12px; border:none; border-radius:4px;
+                margin:2px 8px; color:#cdd6f4; font-size:13px;
+                background-color:transparent;
             }
-            QFrame#navFrame QPushButton {
-                text-align: left;
-                padding: 10px 15px;
-                border: none;
-                border-radius: 5px;
-                margin: 2px 8px;
-                color: #cdd6f4;
-                font-size: 13px;
-            }
-            QFrame#navFrame QPushButton:hover {
-                background-color: #313244;
-            }
-            QFrame#navFrame QPushButton:checked {
-                background-color: #89b4fa;
-                color: #1e1e2e;
-                font-weight: bold;
-            }
+            QFrame QPushButton:hover { background-color:#313244; }
+            QFrame QPushButton:checked { background-color:#89b4fa; color:#1e1e2e; font-weight:bold; }
         """)
-
         layout = QVBoxLayout(nav)
-        layout.setContentsMargins(8, 16, 8, 8)
-        layout.setSpacing(4)
+        layout.setContentsMargins(6, 14, 6, 6)
+        layout.setSpacing(3)
 
-        # 导航按钮
-        nav_items = [
-            ("📊 概览", "overview"),
-            ("💻 环境", "environment"),
-            ("💾 GPU", "gpu"),
-            ("📦 模型", "models"),
-            ("🧱️ 节点", "nodes"),
-            ("📚 工作流", "workflows"),
-            ("🖥️ 插件", "plugins"),
-            ("🔄 更新", "updates"),
-            ("➕ 健康检查", "health"),
-        ]
-
-        self.nav_buttons = {}
-        for text, page_id in nav_items:
+        self._nav_map: dict[str, QPushButton] = {}
+        for text, page in [("📊 概览", "overview"), ("📝 日志", "log")]:
             btn = QPushButton(text)
             btn.setCheckable(True)
-            btn.clicked.connect(lambda checked, pid=page_id: self._switch_page(pid))
+            btn.clicked.connect(lambda _, p=page: self._switch_page(p))
             layout.addWidget(btn)
-            self.nav_buttons[page_id] = btn
+            self._nav_map[page] = btn
 
-        # 默认选中概览
-        self.nav_buttons["overview"].setChecked(True)
-
+        self._nav_map["overview"].setChecked(True)
         layout.addStretch()
         return nav
 
-    def _init_content_pages(self):
-        """初始化内容页面（占位）"""
-        # 概览页
-        overview = self._create_placeholder_page("概览", "欢迎使用 MS Comfy Studio Pro")
-        self.content_stack.addWidget(overview)
+    # ── 页面构建 ─────────────────────────────
 
-        # 其他页面（占位）
-        for page_id in ["environment", "gpu", "models", "nodes", "workflows", "plugins", "updates", "health"]:
-            page = self._create_placeholder_page(page_id, f"{page_id} 管理")
-            self.content_stack.addWidget(page)
+    def _build_pages(self):
+        self.content_stack.addWidget(self._page_overview())   # 0
+        self.content_stack.addWidget(self._page_log())         # 1
 
-    def _create_placeholder_page(self, title: str, subtitle: str) -> QWidget:
-        """创建占位页面"""
-        widget = QWidget()
-        layout = QVBoxLayout(widget)
-        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        label = QLabel(f"⭐ {title}")
-        label.setStyleSheet("font-size: 24px; font-weight: bold; color: #89b4fa;")
-        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(label)
-
-        sub = QLabel(subtitle)
-        sub.setStyleSheet("color: #6c7086; font-size: 14px;")
-        sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(sub)
-
-        hint = QLabel("此功能将在后续开发中实现")
-        hint.setStyleSheet("color: #a6adc8; font-size: 12px;")
-        hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(hint)
-
-        return widget
-
-    def _switch_page(self, page_id: str):
-        """切换到指定页面"""
-        index_map = {
-            "overview": 0, "environment": 1, "gpu": 2, "models": 3,
-            "nodes": 4, "workflows": 5, "plugins": 6, "updates": 7, "health": 8,
-        }
-        idx = index_map.get(page_id, 0)
+    def _switch_page(self, page: str):
+        idx = {"overview": 0, "log": 1}.get(page, 0)
         self.content_stack.setCurrentIndex(idx)
 
-    def _on_start_comfy(self):
-        """启动 ComfyUI"""
-        self.status_bar.showMessage("正在启动 ComfyUI...")
+    # ── Dashboard: 概览页 ───────────────────
 
-    def _on_stop_comfy(self):
-        """停止 ComfyUI"""
-        self.status_bar.showMessage("正在停止 ComfyUI...")
+    def _page_overview(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(16, 16, 16, 16)
+        lay.setSpacing(12)
+
+        # 标题
+        title = QLabel("欢迎使用 MS Comfy Studio Pro")
+        title.setFont(QFont(_FONT_FAMILY, 16, QFont.Weight.Bold))
+        title.setStyleSheet("color:#89b4fa;")
+        lay.addWidget(title)
+
+        subtitle = QLabel(f"专为 Intel Arc A750（8GB VRAM）优化 · v{__version__}")
+        subtitle.setStyleSheet("color:#a6adc8;")
+        lay.addWidget(subtitle)
+        lay.addSpacing(8)
+
+        # 四个状态卡片
+        cards_layout = QGridLayout()
+        cards_layout.setHorizontalSpacing(12)
+        cards_layout.setVerticalSpacing(12)
+
+        card_names = [
+            ("GPU", "未检测"),
+            ("系统内存", "—"),
+            ("Python", "—"),
+            ("ComfyUI", "未安装"),
+        ]
+        self._card_labels: dict[str, QLabel] = {}
+        for i, (name, val) in enumerate(card_names):
+            grp = QGroupBox(name)
+            txt = QLabel(val)
+            txt.setStyleSheet("""
+                QLabel {
+                    color:#cdd6f4; font-size:14px; font-weight:bold;
+                    background:#1e1e2e; border-radius:6px; padding:12px;
+                    qproperty-alignment: AlignCenter;
+                }
+            """)
+            inner = QVBoxLayout(grp)
+            inner.setAlignment(txt, Qt.AlignmentFlag.AlignCenter)
+            inner.setContentsMargins(8, 8, 8, 8)
+            cards_layout.addWidget(grp, i // 2, i % 2)
+            self._card_labels[name] = txt
+
+        lay.addLayout(cards_layout)
+
+        # 操作按钮
+        btn_row = QHBoxLayout()
+        btn_start = QPushButton("▶ 启动 ComfyUI")
+        btn_start.setObjectName("primaryBtn")
+        btn_start.setStyleSheet("""
+            QPushButton#primaryBtn {
+                background-color:#89b4fa; color:#1e1e2e; font-weight:bold;
+                padding:10px 28px; border-radius:6px; font-size:14px;
+            }
+            QPushButton#primaryBtn:hover { background-color:#74c7ec; }
+            QPushButton#primaryBtn:disabled { background-color:#585b70; color:#a6adc8; }
+        """)
+        btn_start.clicked.connect(self._on_start)
+        btn_row.addWidget(btn_start)
+
+        btn_stop = QPushButton("■ 停止 ComfyUI")
+        btn_stop.setObjectName("dangerBtn")
+        btn_stop.setEnabled(False)
+        btn_stop.setStyleSheet("""
+            QPushButton#dangerBtn {
+                background-color:#f38ba8; color:#1e1e2e; font-weight:bold;
+                padding:10px 28px; border-radius:6px; font-size:14px;
+            }
+            QPushButton#dangerBtn:hover { background-color:#eba0ac; }
+            QPushButton#dangerBtn:disabled { background-color:#45475a; color:#6c7086; }
+        """)
+        btn_stop.clicked.connect(self._on_stop)
+        btn_row.addWidget(btn_stop)
+        btn_row.addStretch()
+        self._btn_stop_widget = btn_stop
+        lay.addLayout(btn_row)
+
+        # 推荐配置
+        rec = QGroupBox("硬件识别与推荐")
+        rec_txt = QLabel("点击「刷新」获取详细信息…")
+        rec_txt.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        rec_txt.setWordWrap(True)
+        inner_rec = QVBoxLayout(rec)
+        inner_rec.addWidget(rec_txt)
+        lay.addWidget(rec)
+        self._rec_label = rec_txt
+
+        # 初始加载
+        self._refresh_dashboard()
+
+        return w
+
+    # ── 日志页 ───────────────────────────────
+
+    def _page_log(self) -> QWidget:
+        w = QWidget()
+        lay = QVBoxLayout(w)
+        lay.setContentsMargins(16, 16, 16, 16)
+
+        lbl = QLabel("Launcher 运行日志")
+        lbl.setStyleSheet("font-weight:bold; color:#89b4fa; font-size:14px;")
+        lay.addWidget(lbl)
+
+        self._log_text = QTextEdit()
+        self._log_text.setReadOnly(True)
+        self._log_text.setFont(QFont("Consolas", 10))
+        self._log_text.setStyleSheet("""
+            QTextEdit {
+                background:#181825; color:#cdd6f4; border:1px solid #313244;
+                border-radius:4px; padding:8px;
+            }
+        """)
+        lay.addWidget(self._log_text)
+
+        btn_row = QHBoxLayout()
+        btn_clear = QPushButton("清空日志")
+        btn_clear.clicked.connect(self._log_text.clear)
+        btn_copy = QPushButton("复制")
+        btn_copy.clicked.connect(lambda: self._log_text.copy())
+        btn_row.addWidget(btn_clear)
+        btn_row.addWidget(btn_copy)
+        btn_row.addStretch()
+        lay.addLayout(btn_row)
+
+        return w
+
+    # ── 状态栏 ───────────────────────────────
+
+    def _status_bar(self) -> QStatusBar:
+        sb = QStatusBar()
+        self._sb_gpu = QLabel("GPU: --")
+        self._sb_version = QLabel(__version__)
+        sb.addWidget(self._sb_gpu, 1)
+        sb.addPermanentWidget(self._sb_version)
+        return sb
+
+    # ── 操作 ─────────────────────────────────
+
+    def _ensure_launcher(self):
+        if self._launcher is None:
+            from pathlib import Path
+            project_root = str(Path(__file__).parent.parent.parent)
+            self._launcher = Launcher(project_root)
+            # 回调：更新日志页
+            self._launcher.on_log_message(self._log_text.append)
+        return self._launcher
+
+    def _on_start(self):
+        if self._launcher and self._launcher.state == LauncherState.STATE_RUNNING:
+            return
+        self._ensure_launcher()
+        self._log_text.append("[INFO] 正在启动 ComfyUI...")
+        ok = self._launcher.start_comfyui()
+        self._update_state(ok)
+        if ok:
+            self._start_auto_refresh()
+        else:
+            self._log_text.append("[ERROR] 启动失败，请检查健康检查")
+
+    def _on_stop(self):
+        if not self._launcher:
+            return
+        self._log_text.append("[INFO] 正在停止 ComfyUI...")
+        ok = self._launcher.stop_comfyui()
+        self._update_state(ok)
+        if ok:
+            self._stop_auto_refresh()
+            self._log_text.append("[INFO] ComfyUI 已停止")
 
     def _on_refresh(self):
-        """刷新状态"""
-        self.status_bar.showMessage("已刷新")
+        self._refresh_dashboard()
 
-    def _on_settings(self):
-        """打开设置"""
-        QMessageBox.information(self, "设置", "设置功能即将推出")
+    def _on_health(self):
+        self._ensure_launcher()
+        self._log_text.append("[INFO] 运行健康检查...")
+        result = self._launcher.health_check()
+        overall = result.get("overall", "?")
+        self._log_text.append(f"[{overall.upper()}] 健康检查完成")
+        for k, v in result.get("details", {}).items():
+            msg = v.get("message", "")
+            self._log_text.append(f"  {k}: {msg}")
 
-    def _on_help(self):
-        """帮助"""
-        QMessageBox.information(
-            self, "帮助",
-            f"{__title__} v{__version__}\n\n"
-            "专为 Intel Arc A750 (8GB) 优化的企业级 ComfyUI 平台。\n\n"
-            "使用方法：\n"
-            "1. 点击 '启动 ComfyUI' 开始使用\n"
-            "2. 在左侧导航中管理模型、节点和工作流\n"
-            "3. 使用 '健康检查' 监控系统状态",
-        )
+    def _update_state(self, started: bool):
+        st = self._launcher.state if self._launcher else LauncherState.STATE_IDLE
+        self._btn_start.setEnabled(st != LauncherState.STATE_RUNNING and st != LauncherState.STATE_CHECKING)
+        self._btn_stop.setEnabled(st == LauncherState.STATE_RUNNING)
+        self.status_bar.showMessage(f"状态: {st}")
+
+    # ── 自动刷新 ─────────────────────────────
+
+    def _start_auto_refresh(self):
+        if self._dashboard_timer is not None:
+            return
+        self._dashboard_timer = QTimer(self)
+        self._dashboard_timer.timeout.connect(self._refresh_dashboard)
+        self._dashboard_timer.start(5000)  # 每 5 秒
+
+    def _stop_auto_refresh(self):
+        if self._dashboard_timer:
+            self._dashboard_timer.stop()
+            self._dashboard_timer = None
+
+    def _refresh_dashboard(self):
+        self._ensure_launcher()
+        data = self._launcher.get_dashboard_data()
+
+        gpu = data.get("gpu", {})
+        sysd = data.get("system", {})
+        comfy = data.get("comfyui", {})
+        health = data.get("health", {})
+
+        # 更新卡片
+        self._safe_set(self._card_labels.get("GPU"),
+                       f"{gpu.get('name','?')} ({gpu.get('memory_mb','?')}MB)")
+        self._safe_set(self._card_labels.get("系统内存"),
+                       f"{sysd.get('available_memory_mb','?')} / {sysd.get('total_memory_mb','?')} MB")
+        self._safe_set(self._card_labels.get("Python"), sysd.get("python_version", "—"))
+        self._safe_set(self._card_labels.get("ComfyUI"),
+                       "运行中" if comfy.get("running") else
+                       "已安装" if comfy.get("installed") else "未安装")
+
+        # GPU 状态栏
+        self.status_bar.setStatusTip("")
+        gpu_type = gpu.get("type", "--")
+        self._sb_gpu.setText(f"GPU: {gpu_name} ({gpu_mem}MB)")
+        self._sb_gpu.setText(f"GPU: {gpu_type}")
+
+        # 推荐
+        rec_lines = []
+        rec_lines.append(f"**GPU**: {gpu.get('name','?')} [{gpu.get('type','?')}]")
+        if gpu.get("xpu_available"):
+            rec_lines.append("- Intel XPU 可用 → 将作为首选后端")
+        elif gpu.get("directml_available"):
+            rec_lines.append("- DirectML 可用 → 将作为兼容兜底")
+        elif gpu.get("cuda_available"):
+            rec_lines.append("- CUDA 可用 → 将使用 NVIDIA 加速")
+        else:
+            rec_lines.append("- 未检测到 GPU → 仅使用 CPU")
+
+        mem = sysd.get("total_memory_mb", 0)
+        if mem < 16384:
+            rec_lines.append(f"- 内存 {mem}MB < 16GB，建议升级至 16GB+")
+        else:
+            rec_lines.append(f"- 内存充足: {mem}MB")
+
+        rec_lines.append(f"- Python {sysd.get('python_version','?')}")
+        rec_lines.append(f"- ComfyUI: {'已安装' if comfy.get('installed') else '需先安装'}")
+
+        state = self._launcher.state if self._launcher else LauncherState.IDLE
+        if state == LauncherState.RUNNING:
+            rec_lines.append("\n🟢 ComfyUI 正在运行")
+        elif state == LauncherState.STARTING:
+            rec_lines.append("\n🟡 正在启动…")
+        elif state == LauncherState.ERROR:
+            rec_lines.append("\n🔴 发生错误，请查看日志")
+
+        self._rec_label.setText("\n".join(rec_lines))
+
+        # 自动切换到概览页（如果当前在日志页且刚启动）
+        # （不强制切换，由用户决定）
+
+        # 更新按钮状态
+        running = self._launcher and self._launcher.is_running()
+        busy = self._launcher and self._launcher.is_busy()
+        self._btn_start.setEnabled(not busy)
+        self._btn_stop_widget.setEnabled(running)
+
+    @staticmethod
+    def _safe_set(label, text: str):
+        if label is not None:
+            label.setText(text)
