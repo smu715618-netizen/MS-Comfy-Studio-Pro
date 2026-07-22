@@ -6,15 +6,19 @@
 - NVIDIA CUDA
 - AMD ROCm
 - CPU Only（无 GPU）
+
+同时提供完整的系统信息检测（CPU、内存、Python环境）。
 """
 
 import subprocess
 import sys
 import os
+import platform
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from src.logger import get_logger
+from src.config_manager import get_config
 
 logger = get_logger("gpu")
 
@@ -27,6 +31,33 @@ class GPUType(Enum):
     AMD_ROCM = "amd_rocm"
     CPU_ONLY = "cpu_only"
     UNKNOWN = "unknown"
+
+
+@dataclass
+class SystemInfo:
+    """系统信息"""
+    cpu_name: str = ""
+    cpu_cores_physical: int = 0
+    cpu_cores_logical: int = 0
+    total_memory_mb: int = 0
+    available_memory_mb: int = 0
+    python_version: str = ""
+    python_64bit: bool = False
+    os_name: str = ""
+    os_version: str = ""
+
+    def to_dict(self) -> dict:
+        return {
+            "cpu_name": self.cpu_name,
+            "cpu_cores_physical": self.cpu_cores_physical,
+            "cpu_cores_logical": self.cpu_cores_logical,
+            "total_memory_mb": self.total_memory_mb,
+            "available_memory_mb": self.available_memory_mb,
+            "python_version": self.python_version,
+            "python_64bit": self.python_64bit,
+            "os_name": self.os_name,
+            "os_version": self.os_version,
+        }
 
 
 @dataclass
@@ -44,6 +75,22 @@ class GPUInfo:
     cuda_supported: bool = False
     rocm_supported: bool = False
     details: dict = field(default_factory=dict)
+
+    def to_dict(self) -> dict:
+        return {
+            "gpu_type": self.gpu_type.value,
+            "vendor": self.vendor,
+            "name": self.name,
+            "memory_total_mb": self.memory_total_mb,
+            "memory_used_mb": self.memory_used_mb,
+            "driver_version": self.driver_version,
+            "compute_capability": self.compute_capability,
+            "directml_supported": self.directml_supported,
+            "xpu_supported": self.xpu_supported,
+            "cuda_supported": self.cuda_supported,
+            "rocm_supported": self.rocm_supported,
+            "details": self.details,
+        }
 
 
 class GPUDetector:
@@ -313,3 +360,73 @@ class GPUDetector:
         )
 
         return result
+
+    def get_system_info(self) -> SystemInfo:
+        """
+        获取完整的系统信息（CPU + 内存 + Python 环境）
+
+        Returns:
+            SystemInfo 对象
+        """
+        info = SystemInfo()
+
+        # CPU 信息
+        info.cpu_cores_logical = os.cpu_count() or 1
+
+        # Windows: 尝试获取物理核心数
+        if platform.system() == "Windows":
+            try:
+                result = subprocess.run(
+                    ["wmic", "cpu", "get", "Name,NumberOfCores,NumberOfLogicalProcessors"],
+                    capture_output=True, text=True, timeout=10
+                )
+                lines = [l.strip() for l in result.stdout.strip().split('\n') if l.strip()]
+                if len(lines) >= 2:
+                    info.cpu_name = lines[1].split(',')[0].strip()
+                    for part in lines[1].split(','):
+                        part = part.strip()
+                        if 'Core' in part:
+                            info.cpu_cores_physical = int(part.replace('Core', '').replace('s', '').strip())
+            except Exception:
+                info.cpu_name = platform.processor() or "Unknown"
+
+        if not info.cpu_name:
+            info.cpu_name = platform.processor() or "Unknown CPU"
+
+        # 内存信息
+        try:
+            import psutil
+            vm = psutil.virtual_memory()
+            info.total_memory_mb = vm.total // (1024 * 1024)
+            info.available_memory_mb = vm.available // (1024 * 1024)
+        except ImportError:
+            info.total_memory_mb = 16384  # 假设 16GB
+            info.available_memory_mb = 8192
+
+        # Python 环境
+        info.python_version = platform.python_version()
+        info.python_64bit = sys.maxsize > 2**32
+
+        # OS 信息
+        info.os_name = platform.system()
+        info.os_version = platform.version()
+
+        return info
+
+    def get_full_hardware_report(self) -> Dict[str, Any]:
+        """
+        获取完整的硬件报告
+
+        Returns:
+            包含 GPU、CPU、内存等完整信息的字典
+        """
+        gpu = self.detect()
+        sys_info = self.get_system_info()
+        compat = self.check_compatibility()
+
+        return {
+            "gpu": gpu.to_dict(),
+            "system": sys_info.to_dict(),
+            "compatibility": compat,
+            "recommended_backend": self.get_recommended_backend(),
+        }
