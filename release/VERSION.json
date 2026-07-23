@@ -1,8 +1,8 @@
-﻿{
-    "version":  "0.5.0",
-    "commit_id":  "9063168",
-    "build_time":  "2026-07-23T15:35:30",
-    "phase":  5,
-    "platform":  "Windows 11 + Intel Arc A750",
-    "git_tag":  "phase-5.0"
+{
+  "version": "0.6.0",
+  "phase": 6,
+  "commit_id": "ecf2a95",
+  "git_tag": "phase-6.0",
+  "build_time": "2026-07-23T18:47:07.956256",
+  "platform": "Windows 11 + Intel Arc A750 8GB"
 }
