@@ -88,7 +88,7 @@ class CpuMonitor:
         # 获取CPU信息
         try:
             result = subprocess.run(
-                ["wmic", "cpu", "get", "Name,NumberOfCores,MaxClockSpeed"],
+                ["wmic", "cpu", "get", "Name,NumberOfCores,NumberOfLogicalProcessors,MaxClockSpeed"],
                 capture_output=True, text=True, timeout=10
             )
             lines = [l.strip() for l in result.stdout.strip().split('\n') if l.strip()]
@@ -118,6 +118,7 @@ class CpuMonitor:
             info.name = platform.processor() or "Unknown CPU"
 
         info.logical_cores = os.cpu_count() or 1
+
         return info
 
     @staticmethod
@@ -128,6 +129,7 @@ class CpuMonitor:
             load = psutil.cpu_percent(interval=interval)
             return float(load)
         except ImportError:
+            # 如果没有psutil，返回0
             return 0.0
 
 
