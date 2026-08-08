@@ -63,10 +63,17 @@
 
 ## 待完成 (第二阶段及以后)
 
-### 第二阶段：启动器完善 🔄
-- [ ] 实现完整 GUI 面板（当前为占位页面）
+### 第二阶段：启动器完善 ✅
+- [x] 实现完整 GUI 面板（Dashboard + 日志页 + 环境页）
+- [x] 连接 ConsoleWidget 到事件总线（实时日志流）
+- [x] 实时状态显示（GPU/CPU/内存/ComfyUI 状态卡片）
+- [x] 端口配置界面（QSpinBox 8000-65535）
+- [x] 快速操作按钮（启动/停止/打开浏览器）
+- [x] 自动打开浏览器选项
+- [x] 修复 QAction 未导入崩溃 bug
+- [x] 修复 LauncherState.IDLE 类型错误 bug
+- [x] 修复 PipelineEngine.remove_step 异常处理 bug
 - [ ] 连接事件总线到 GUI
-- [ ] 实时状态显示
 - [ ] 交互式模型下载
 - [ ] 交互式节点安装
 

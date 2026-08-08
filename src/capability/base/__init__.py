@@ -409,7 +409,10 @@ class PipelineEngine:
 
     def remove_step(self, step_id: str) -> bool:
         """移除指定步骤"""
-        idx = int(step_id.split("_")[1]) - 1
+        try:
+            idx = int(step_id.split("_")[1]) - 1
+        except (ValueError, IndexError):
+            return False
         if 0 <= idx < len(self._steps):
             self._steps.pop(idx)
             return True

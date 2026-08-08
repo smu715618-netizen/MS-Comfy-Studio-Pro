@@ -2,10 +2,9 @@
 主窗口 — Launcher GUI
 
 启动器面板的主界面，连接 src.launcher.Launcher 提供：
-- 首页 Dashboard（GPU/CPU/内存/ComfyUI 状态卡片）
-- 实时日志面板
-- 启动/停止 ComfyUI 按钮
-- 健康检查
+- 概览页：Dashboard（GPU/CPU/内存/ComfyUI 状态卡片 + 端口配置 + 快捷操作）
+- 日志页：实时 ComfyUI 输出流（ConsoleWidget + 启动日志）
+- 环境页：Python / Intel XPU / ComfyUI / 依赖包状态（EnvironmentPage）
 
 不加载 ComfyUI、模型、节点等模块（按需加载）。
 只加载 launcher + 必需的 Qt。
@@ -16,9 +15,10 @@ from PyQt6.QtWidgets import (
     QStackedWidget, QFrame, QLabel, QPushButton,
     QToolBar, QStatusBar, QMessageBox, QTabWidget,
     QGroupBox, QGridLayout, QTextEdit, QProgressBar,
+    QLineEdit, QSpinBox, QCheckBox,
 )
-from PyQt6.QtCore import Qt, QSize, QTimer
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, QSize, QTimer, QUrl
+from PyQt6.QtGui import QFont, QAction, QDesktopServices
 
 from src.__version__ import __title__, __version__
 from src.launcher import Launcher, LauncherState
@@ -33,8 +33,8 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{__title__} v{__version__}")
-        self.resize(1100, 700)
-        self.setMinimumSize(900, 600)
+        self.resize(1120, 740)
+        self.setMinimumSize(920, 620)
 
         # 核心：启动器实例（延迟初始化，首次需要时才创建）
         self._launcher: Launcher | None = None
@@ -79,7 +79,7 @@ class MainWindow(QMainWindow):
         # 底部状态栏
         self.status_bar = self._status_bar()
         self.setStatusBar(self.status_bar)
-        self.status_bar.showMessage("就绪 — 点击「刷新」或 「启动 ComfyUI」开始")
+        self.status_bar.showMessage("就绪 — 点击「刷新」或「启动 ComfyUI」开始")
 
     # ── 工具栏 ───────────────────────────────
 
@@ -129,7 +129,11 @@ class MainWindow(QMainWindow):
         layout.setSpacing(3)
 
         self._nav_map: dict[str, QPushButton] = {}
-        for text, page in [("📊 概览", "overview"), ("📝 日志", "log")]:
+        for text, page in [
+            ("📊 概览", "overview"),
+            ("📝 日志", "log"),
+            ("⚙️ 环境", "environment"),
+        ]:
             btn = QPushButton(text)
             btn.setCheckable(True)
             btn.clicked.connect(lambda _, p=page: self._switch_page(p))
@@ -145,9 +149,10 @@ class MainWindow(QMainWindow):
     def _build_pages(self):
         self.content_stack.addWidget(self._page_overview())   # 0
         self.content_stack.addWidget(self._page_log())         # 1
+        self.content_stack.addWidget(self._page_environment()) # 2
 
     def _switch_page(self, page: str):
-        idx = {"overview": 0, "log": 1}.get(page, 0)
+        idx = {"overview": 0, "log": 1, "environment": 2}.get(page, 0)
         self.content_stack.setCurrentIndex(idx)
 
     # ── Dashboard: 概览页 ───────────────────
@@ -167,7 +172,7 @@ class MainWindow(QMainWindow):
         subtitle = QLabel(f"专为 Intel Arc A750（8GB VRAM）优化 · v{__version__}")
         subtitle.setStyleSheet("color:#a6adc8;")
         lay.addWidget(subtitle)
-        lay.addSpacing(8)
+        lay.addSpacing(4)
 
         # 四个状态卡片
         cards_layout = QGridLayout()
@@ -199,7 +204,7 @@ class MainWindow(QMainWindow):
 
         lay.addLayout(cards_layout)
 
-        # 操作按钮
+        # 操作按钮行
         btn_row = QHBoxLayout()
         btn_start = QPushButton("▶ 启动 ComfyUI")
         btn_start.setObjectName("primaryBtn")
@@ -231,11 +236,59 @@ class MainWindow(QMainWindow):
         self._btn_stop_widget = btn_stop
         lay.addLayout(btn_row)
 
+        # 快捷操作行
+        quick_row = QHBoxLayout()
+        quick_row.setSpacing(8)
+
+        self._btn_open_browser = QPushButton("🌐 打开浏览器")
+        self._btn_open_browser.setObjectName("secondaryBtn")
+        self._btn_open_browser.setEnabled(False)
+        self._btn_open_browser.setStyleSheet("""
+            QPushButton#secondaryBtn {
+                background-color:#313244; color:#cdd6f4; border:1px solid #45475a;
+                padding:8px 18px; border-radius:5px; font-size:13px;
+            }
+            QPushButton#secondaryBtn:hover { background-color:#45475a; }
+            QPushButton#secondaryBtn:disabled { background-color:#1e1e2e; color:#6c7086; }
+        """)
+        self._btn_open_browser.clicked.connect(self._on_open_browser)
+        quick_row.addWidget(self._btn_open_browser)
+
+        # 端口配置
+        quick_row.addWidget(QLabel("端口:"))
+        self._port_spin = QSpinBox()
+        self._port_spin.setRange(8000, 65535)
+        self._port_spin.setValue(8188)
+        self._port_spin.setPrefix("")
+        self._port_spin.setSuffix("")
+        self._port_spin.setStyleSheet("""
+            QSpinBox {
+                background:#1e1e2e; color:#cdd6f4; border:1px solid #313244;
+                border-radius:4px; padding:4px 8px; font-size:12px;
+            }
+        """)
+        quick_row.addWidget(self._port_spin)
+
+        self._chk_auto_browser = QCheckBox("启动后自动打开浏览器")
+        self._chk_auto_browser.setStyleSheet("color:#a6adc8; font-size:12px;")
+        self._chk_auto_browser.setChecked(False)
+        quick_row.addWidget(self._chk_auto_browser)
+        quick_row.addStretch()
+        lay.addLayout(quick_row)
+
         # 推荐配置
         rec = QGroupBox("硬件识别与推荐")
+        rec.setStyleSheet("""
+            QGroupBox {
+                font-weight: bold; color: #89b4fa;
+                border: 1px solid #313244; border-radius: 6px; padding-top: 12px;
+            }
+            QGroupBox::title { subcontrol-origin: margin; left: 10px; padding: 0 6px; }
+        """)
         rec_txt = QLabel("点击「刷新」获取详细信息…")
         rec_txt.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         rec_txt.setWordWrap(True)
+        rec_txt.setStyleSheet("color:#cdd6f4; font-size:12px;")
         inner_rec = QVBoxLayout(rec)
         inner_rec.addWidget(rec_txt)
         lay.addWidget(rec)
@@ -246,39 +299,42 @@ class MainWindow(QMainWindow):
 
         return w
 
-    # ── 日志页 ───────────────────────────────
+    # ── 日志页：实时 ComfyUI 日志流 ──────────
 
     def _page_log(self) -> QWidget:
         w = QWidget()
         lay = QVBoxLayout(w)
         lay.setContentsMargins(16, 16, 16, 16)
 
-        lbl = QLabel("Launcher 运行日志")
+        # 标题
+        lbl = QLabel("ComfyUI 运行日志")
         lbl.setStyleSheet("font-weight:bold; color:#89b4fa; font-size:14px;")
         lay.addWidget(lbl)
 
-        self._log_text = QTextEdit()
-        self._log_text.setReadOnly(True)
-        self._log_text.setFont(QFont("Consolas", 10))
-        self._log_text.setStyleSheet("""
-            QTextEdit {
-                background:#181825; color:#cdd6f4; border:1px solid #313244;
-                border-radius:4px; padding:8px;
-            }
-        """)
-        lay.addWidget(self._log_text)
+        # 使用 ConsoleWidget 实现实时日志流
+        from src.gui.widgets.console_widget import ConsoleWidget
+        self._console = ConsoleWidget()
+        lay.addWidget(self._console)
 
+        # 操作行
         btn_row = QHBoxLayout()
-        btn_clear = QPushButton("清空日志")
-        btn_clear.clicked.connect(self._log_text.clear)
-        btn_copy = QPushButton("复制")
-        btn_copy.clicked.connect(lambda: self._log_text.copy())
+        btn_clear = QPushButton("清空")
+        btn_clear.clicked.connect(self._console.clear)
+        btn_copy = QPushButton("复制日志")
+        btn_copy.clicked.connect(lambda: self._console._copy_log())
         btn_row.addWidget(btn_clear)
         btn_row.addWidget(btn_copy)
         btn_row.addStretch()
         lay.addLayout(btn_row)
 
         return w
+
+    # ── 环境页：Python / Intel XPU / ComfyUI 状态 ──
+
+    def _page_environment(self) -> QWidget:
+        from src.gui.widgets.environment_page import EnvironmentPage
+        env_page = EnvironmentPage()
+        return env_page
 
     # ── 状态栏 ───────────────────────────────
 
@@ -290,51 +346,68 @@ class MainWindow(QMainWindow):
         sb.addPermanentWidget(self._sb_version)
         return sb
 
-    # ── 操作 ─────────────────────────────────
+    # ── 启动器懒加载 ─────────────────────────
 
     def _ensure_launcher(self):
         if self._launcher is None:
             from pathlib import Path
             project_root = str(Path(__file__).parent.parent.parent)
             self._launcher = Launcher(project_root)
-            # 回调：更新日志页
-            self._launcher.on_log_message(self._log_text.append)
+            # 回调：将 ComfyUI 日志转发到 ConsoleWidget
+            self._launcher.on_log_message(self._console.append_log)
         return self._launcher
+
+    # ── 操作 ─────────────────────────────────
 
     def _on_start(self):
         if self._launcher and self._launcher.state == LauncherState.STATE_RUNNING:
             return
         self._ensure_launcher()
-        self._log_text.append("[INFO] 正在启动 ComfyUI...")
-        ok = self._launcher.start_comfyui()
+        self._console.append_log("[INFO] 正在启动 ComfyUI...")
+        self._console.set_color_message("[INFO] 正在启动 ComfyUI...", "#a6e3a1")
+
+        # 收集用户自定义端口
+        custom_port = self._port_spin.value()
+        ok = self._launcher.start_comfyui(port=custom_port if custom_port != 8188 else None)
         self._update_state(ok)
         if ok:
+            self._console.set_color_message("[OK] ComfyUI 启动成功！", "#a6e3a1")
             self._start_auto_refresh()
+            self._btn_open_browser.setEnabled(True)
+            if self._chk_auto_browser.isChecked():
+                self._on_open_browser()
         else:
-            self._log_text.append("[ERROR] 启动失败，请检查健康检查")
+            self._console.set_color_message("[ERROR] 启动失败，请检查健康检查", "#f38ba8")
 
     def _on_stop(self):
         if not self._launcher:
             return
-        self._log_text.append("[INFO] 正在停止 ComfyUI...")
+        self._console.append_log("[INFO] 正在停止 ComfyUI...")
+        self._console.set_color_message("[INFO] 正在停止 ComfyUI...", "#f9e2af")
         ok = self._launcher.stop_comfyui()
         self._update_state(ok)
         if ok:
             self._stop_auto_refresh()
-            self._log_text.append("[INFO] ComfyUI 已停止")
+            self._console.set_color_message("[OK] ComfyUI 已停止", "#a6e3a1")
+            self._btn_open_browser.setEnabled(False)
 
     def _on_refresh(self):
         self._refresh_dashboard()
 
     def _on_health(self):
         self._ensure_launcher()
-        self._log_text.append("[INFO] 运行健康检查...")
+        self._console.set_color_message("[INFO] 运行健康检查...", "#a6e3a1")
         result = self._launcher.health_check()
         overall = result.get("overall", "?")
-        self._log_text.append(f"[{overall.upper()}] 健康检查完成")
+        self._console.append_log(f"[{overall.upper()}] 健康检查完成")
         for k, v in result.get("details", {}).items():
             msg = v.get("message", "")
-            self._log_text.append(f"  {k}: {msg}")
+            self._console.append_log(f"  {k}: {msg}")
+
+    def _on_open_browser(self):
+        port = self._port_spin.value()
+        url = QUrl(f"http://localhost:{port}")
+        QDesktopServices.openUrl(url)
 
     def _update_state(self, started: bool):
         st = self._launcher.state if self._launcher else LauncherState.STATE_IDLE
@@ -397,13 +470,14 @@ class MainWindow(QMainWindow):
 
         rec_lines.append(f"- Python {sysd.get('python_version','?')}")
         rec_lines.append(f"- ComfyUI: {'已安装' if comfy.get('installed') else '需先安装'}")
+        rec_lines.append(f"- 端口: {self._port_spin.value()}")
 
-        state = self._launcher.state if self._launcher else LauncherState.IDLE
-        if state == LauncherState.RUNNING:
+        state = self._launcher.state if self._launcher else LauncherState.STATE_IDLE
+        if state == LauncherState.STATE_RUNNING:
             rec_lines.append("\n🟢 ComfyUI 正在运行")
-        elif state == LauncherState.STARTING:
+        elif state == LauncherState.STATE_STARTING:
             rec_lines.append("\n🟡 正在启动…")
-        elif state == LauncherState.ERROR:
+        elif state == LauncherState.STATE_ERROR:
             rec_lines.append("\n🔴 发生错误，请查看日志")
 
         self._rec_label.setText("\n".join(rec_lines))
@@ -413,6 +487,7 @@ class MainWindow(QMainWindow):
         busy = self._launcher and self._launcher.is_busy()
         self._btn_start.setEnabled(not busy)
         self._btn_stop_widget.setEnabled(running)
+        self._btn_open_browser.setEnabled(running)
 
     @staticmethod
     def _safe_set(label, text: str):
