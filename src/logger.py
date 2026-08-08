@@ -135,12 +135,16 @@ class LoggerManager:
             name: 日志记录器名称 (通常为模块名)
 
         Returns:
-            logging.Logger 实例
+            logging.Logger 实例（继承根 logger 的级别设置）
         """
         if name in self._loggers:
             return self._loggers[name]
 
         logger = logging.getLogger(name)
+        # 继承根 logger 的级别，避免子 logger 默认为 NOTSET(0)
+        root = logging.getLogger()
+        if root.level != logging.NOTSET:
+            logger.setLevel(root.level)
         self._loggers[name] = logger
         return logger
 

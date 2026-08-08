@@ -12,6 +12,7 @@
 - 支持摄影/电商/设计的真实工作流场景
 """
 
+import sys
 import os
 import json
 import shutil

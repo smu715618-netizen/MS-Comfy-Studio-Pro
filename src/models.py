@@ -14,6 +14,7 @@
 - 可扩展：新增模型类型只需在配置中添加，无需改代码
 """
 
+import sys
 import os
 import json
 import hashlib

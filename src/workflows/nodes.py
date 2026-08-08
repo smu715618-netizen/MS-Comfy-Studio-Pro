@@ -49,6 +49,7 @@ class ParamInfo:
     tooltip: str = ""            # 提示文字
     visible: bool = True         # 是否可见
     advanced: bool = False       # 是否高级参数
+    optional: bool = False       # 是否可选参数（未提供时不报错）
 
     def to_dict(self) -> dict:
         d = asdict(self)

@@ -5,7 +5,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from src.workflows.nodes import NodeSignature, NodeType, ParamType, NodeRegistry
+from src.workflows.nodes import NodeSignature, NodeType, ParamType, ParamInfo, NodeRegistry
 
 
 class TestParamType:

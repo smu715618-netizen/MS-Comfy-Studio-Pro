@@ -1,10 +1,10 @@
-# macOS 平台 GPU 后端 (预留)
+"""macOS 平台 GPU 后端（预留）
 
 支持 Apple Silicon Metal / MPS。
 
 当前阶段仅为预留接口，后续待开发。
-
 """
+
 from typing import Optional
 
 

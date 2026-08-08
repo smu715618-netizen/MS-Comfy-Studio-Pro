@@ -4,8 +4,30 @@
 
 ## [Unreleased]
 
+### 待修复
+- 全部审核问题已定位，正在修复中（详见下方各版本记录）
+
+---
+
+## [1.0.1] — 2026-08-08 — 质量门禁修复
+
+### 修复
+- **src/models.py**: 补充缺失的 `import sys`（修复 NameError）
+- **src/logger.py**: `get_logger()` 子 logger 现在继承根 logger 级别，修复 logger.level == 0 的测试失败
+- **src/workflows/nodes.py**: `ParamInfo` 添加 `optional` 字段，修复签名和校验的接口不一致
+- **platform/linux/backend.py**: 重写为正确 UTF-8 编码，修复 UnicodeDecodeError
+- **platform/linux/__init__.py**: 重写为正确 UTF-8 编码 + 模块文档，修复 SyntaxError
+- **platform/macos/__init__.py**: 重写为正确 UTF-8 编码 + 模块文档，修复 SyntaxError
+- **tests/test_workflow_nodes.py**: 补充 `ParamInfo` 导入
+- **src/capability/base/__init__.py**: `PipelineEngine.remove_step()` 增加非法 step_id 异常处理
+- **src/gui/main_window.py**: 修复 `QAction` 未导入崩溃、`LauncherState.IDLE` 属性错误
+
 ### 新增
-- (未来新增内容将记录在此区域)
+- **src/gui/main_window.py**: 完整 Dashboard 页面（端口配置、浏览器快捷按钮、自动刷新）
+- **src/gui/main_window.py**: 实时 ComfyUI 日志流（集成 ConsoleWidget）
+- **src/gui/main_window.py**: 新增环境页（EnvironmentPage：Python/Intel XPU/ComfyUI/依赖状态）
+- **src/gui/styles.qss**: Catppuccin Mocha 暗色主题完整样式表
+- **tests/test_gui_module.py**: 10 个测试类覆盖 GUI/启动器/能力框架/配置
 
 ---
 
@@ -127,6 +149,17 @@
 - `SystemHealth` — 综合健康状态
 - `check_minimum_requirements()` — 最低配置检测
 
+#### AI Capability Framework (src/capability/)
+- `CapabilityBase` — 能力抽象基类（生命周期钩子）
+- `CapabilityDescriptor` — 能力元数据
+- `CapabilityRegistry` — 全局单例注册中心
+- `PipelineEngine` — 编排引擎（拓扑排序/依赖检测）
+- `ExecutorHub` — 执行枢纽（线程安全/并发控制）
+
+#### Portrait AI API (src/ai/portrait/)
+- `PortraitAPI` — 统一修图入口（6个核心能力）
+- 架构：GUI/CLI → PortraitAPI → CapabilityRegistry → Pipeline → EngineAdapter
+
 #### Deployment Scripts
 - setup.bat — Windows一键安装脚本
 - setup.ps1 — PowerShell安装脚本
@@ -142,19 +175,10 @@
 
 ### 架构演进
 
-| 阶段 | 核心成果 | Python文件数 |
+| 版本 | 核心成果 | Python文件数 |
 |------|----------|-------------|
-| Phase 1 | 基础架构（配置/日志/i18n/GPU/健康检查） | 25 |
-| Phase 1.1 | GPU优先级优化（XPU主/DirectML备） | 修改 |
-| Phase 1.2 | 跨平台架构预留（Windows/macOS/Linux） | +3 |
-| Phase 1.3 | 项目优化（文档完善/平台目录优化） | +2 |
-| Phase 2 | Launcher系统（状态机/硬件自适应/进程管理） | +5 |
-| Phase 3 | 环境管理（Python/Intel/ComfyUI/依赖检测） | +4 |
-| Phase 4 | Model Center（模型扫描/索引/SHA256/下载框架） | +2 |
-| Phase 5 | Node Center（安装/卸载/启用/禁用/版本/依赖） | +6 |
-| Phase 6 | Core Platform（Engine Adapter抽象层/Project Manager） | +2 |
-| **Phase 7** | **Full Platform Integration** | **+4** |
-| **总计** | | **~54** |
+| V1.0.0 | 基础架构 + Engine Adapter + Model/Node Center + Launcher + GUI + Capability Framework | 42 |
+| V1.0.1 | GUI完善 + 质量门禁修复 + ParamInfo统一 + Platform编码修复 | 61 |
 
 ---
 
