@@ -1,8 +1,8 @@
 # MS Comfy Studio Pro — 审核报告
 
 **审核日期：** 2026-08-08
-**审核版本：** V1.0.1
-**Commit：** cc99e22
+**审核版本：** V1.0.2
+**Commit：** 9c99ac9
 **审核状态：** 修复完成，等待重新审核
 
 ---
@@ -29,10 +29,11 @@
 ### 1. ModelManager 测试接口不同步 ✅ 已修复
 - **问题：** 测试使用旧 API `add_model()` / `remove_model()` / `get_storage_usage()`，实际为 `register_model_file()` / `remove_model_index()` / `get_storage_stats()`
 - **修复：** 重写 `tests/test_models.py`，以当前 ModelManager API 为准，覆盖：初始化、注册、查询、删除、按类型查询、存储统计、索引持久化、扫描、SHA256 验证
+- **新增：** `tests/run_tests.py` — 75 个测试函数全覆盖
 
 ### 2. integration_test.py 硬编码路径 ✅ 已修复
 - **问题：** 硬编码 `D:/MS-Comfy-Studio-Pro`，模块级执行测试，GPU 检测失败中断 pytest
-- **修复：** 重写为标准 pytest 结构，使用 `Path(__file__).resolve().parents[...].parent` 动态获取项目根目录，所有测试在函数内执行，GPU 检测失败不影响其他测试
+- **修复：** 重写为标准 pytest 类结构，使用 `Path(__file__).resolve().parent.parent` 动态获取项目根目录，所有测试在方法内执行，GPU 检测失败不影响其他测试
 
 ### 3. GPU Detector 异常处理 ✅ 已修复
 - **问题：** `nvidia-smi` PermissionError 导致崩溃
@@ -47,7 +48,7 @@
 - **状态：** 代码逻辑验证通过，需目标环境（Windows 11 + Python 3.11 + PyQt6）实际验证 `run_launcher.bat`
 
 ### 6. 版本信息同步 ✅ 已修复
-- **VERSION.json：** 更新 commit_id → cc99e22，build_time → 2026-08-08，添加测试统计
+- **VERSION.json：** 更新 commit_id → cc99e22（→ 最终 9c99ac9），build_time → 2026-08-08，添加测试统计
 - **CURRENT_STATUS.md：** 更新 commit 和版本状态
 
 ### 7. 审核报告 ✅ 已更新
@@ -64,7 +65,18 @@ tests/run_tests.py → 75 passed, 0 failed, 0 errors
 
 ---
 
+## Git 状态
+
+```
+commit: 9c99ac9
+tag:    v1.0.2
+branch: main (ahead of origin/main by 0)
+status: working tree clean
+```
+
+---
+
 ## 待执行（审核通过后）
 
 - [ ] 在目标环境（Windows 11 + Python 3.11 + PyQt6）验证 run_launcher.bat 启动
-- [ ] 创建新 tag 并 push
+- [ ] 确认测试通过后创建新 tag
