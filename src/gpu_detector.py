@@ -10,10 +10,27 @@
 同时提供完整的系统信息检测（CPU、内存、Python环境）。
 """
 
+
+# Inject stdlib platform before project platform/ shadows it
+# (Required because this project has a platform/ package that shadows the stdlib)
+import sys as _sys, importlib.util as _util, os as _os
+for _p in _sys.path:
+    if 'Lib' in _p and _os.path.isdir(_p):
+        _pf = _os.path.join(_p, 'platform.py')
+        if _os.path.exists(_pf):
+            _spec = _util.spec_from_file_location('platform', _pf)
+            _mod = _util.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            _sys.modules['platform'] = _mod
+            break
+del _sys, _util, _os, _p, _pf, _spec, _mod
+
+import platform
+
+
 import subprocess
 import sys
 import os
-import platform
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Optional, Dict, Any

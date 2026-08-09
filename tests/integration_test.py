@@ -1,77 +1,119 @@
-"""Integration test for MS Comfy Studio Pro Phase 1"""
-import sys, tempfile, os
-sys.path.insert(0, 'D:/MS-Comfy-Studio-Pro')
+"""Integration test — MS Comfy Studio Pro
 
-print('=' * 50)
-print('INTEGRATION TEST - MS Comfy Studio Pro')
-print('=' * 50)
-print()
+标准 pytest 测试结构。
+所有测试在函数内部执行，无模块级代码。
+动态获取项目根目录，禁止硬编码路径。
+GPU 检测失败不影响其他测试。
+"""
 
-# 1. Config Manager
-print('[1/8] ConfigManager...')
+import sys
+import tempfile
+import logging
+from pathlib import Path
+
+# 动态获取项目根目录
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_PROJECT_ROOT))
+
+# 注入 stdlib platform 到 sys.modules，防止被项目 platform/ 包遮蔽
+# 必须在任何其他 import 之前执行
+import importlib.util as _ilu
+import os as _os
+for _p in sys.path:
+    if 'Lib' in _p and _os.path.isdir(_p):
+        _pf = _os.path.join(_p, 'platform.py')
+        if _os.path.exists(_pf):
+            _spec = _ilu.spec_from_file_location('platform', _pf)
+            _mod = _ilu.module_from_spec(_spec)
+            _spec.loader.exec_module(_mod)
+            sys.modules['platform'] = _mod
+            break
+del _ilu, _os, _p, _pf, _spec, _mod
+
 from src.config_manager import ConfigManager, get_config
-config = ConfigManager()
-assert config.get('app.name') == 'MS Comfy Studio Pro'
-assert config.get('gpu.device') == 'xpu'
-assert config.get('comfyui.port') == 8188
-assert config.get('paths.data_dir') == 'data'
-gc = get_config()
-assert gc.get('app.name') == 'MS Comfy Studio Pro'
-print('  PASS - Config loads and reads correctly')
-
-# 2. Logger
-print('[2/8] Logger...')
 from src.logger import setup_logging, get_logger
-tmpdir = tempfile.mkdtemp()
-setup_logging(log_level='DEBUG', log_dir=tmpdir, console_output=False)
-log = get_logger('integration_test')
-log.info('test message')
-assert os.path.exists(tmpdir)
-print('  PASS - Logger works correctly')
-
-# 3. i18n
-print('[3/8] I18n...')
 from src.i18n import I18nManager
-i18n = I18nManager()
-assert i18n.t('app.name') == 'MS Comfy Studio Pro'
-i18n.set_locale('en-US')
-assert i18n.t('app.name') == 'MS Comfy Studio Pro'
-print('  PASS - i18n works correctly')
-
-# 4. GPU Detector
-print('[4/8] GPU Detector...')
 from src.gpu_detector import GPUDetector
-detector = GPUDetector()
-info = detector.detect()
-print(f'  PASS - GPU: {info.gpu_type.value} / {info.name or "unknown"}')
-
-# 5. Health Checker
-print('[5/8] Health Checker...')
 from src.health_check import HealthChecker
-hc = HealthChecker(project_root='D:/MS-Comfy-Studio-Pro')
-summary = hc.get_summary()
-print(f'  PASS - Health: {summary["overall"]} ({summary["passed"]} passed)')
-
-# 6. Models Manager
-print('[6/8] Model Manager...')
 from src.models import ModelManager, ModelType
-mm = ModelManager(data_dir='D:/MS-Comfy-Studio-Pro/data')
-assert mm.get_storage_usage()['model_count'] >= 0
-print(f'  PASS - Models: {mm.get_storage_usage()["model_count"]} indexed')
-
-# 7. Node Manager
-print('[7/8] Node Manager...')
 from src.nodes import NodeManager
-nm = NodeManager(comfyui_dir='D:/MS-Comfy-Studio-Pro/comfyui')
-print(f'  PASS - Nodes: {len(nm.get_all_nodes())} indexed')
-
-# 8. Workflow Manager
-print('[8/8] Workflow Manager...')
 from src.workflows import WorkflowManager
-wm = WorkflowManager(workflows_dir='D:/MS-Comfy-Studio-Pro/data/workflows')
-print(f'  PASS - Workflows: {len(wm.get_all_workflows())} indexed')
 
-print()
-print('=' * 50)
-print('ALL 8 INTEGRATION TESTS PASSED')
-print('=' * 50)
+
+class TestIntegration:
+    """集成测试 — 核心模块端到端验证"""
+
+    def test_config_manager(self):
+        """测试配置加载和读取"""
+        config = ConfigManager()
+        assert config.get('app.name') == 'MS Comfy Studio Pro'
+        assert config.get('gpu.device') == 'xpu'
+        assert config.get('comfyui.port') == 8188
+        assert config.get('paths.data_dir') == 'data'
+        gc = get_config()
+        assert gc.get('app.name') == 'MS Comfy Studio Pro'
+
+    def test_logger_setup(self):
+        """测试日志系统初始化"""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            setup_logging(log_level='DEBUG', log_dir=tmpdir, console_output=False)
+            logger = get_logger('integration_test')
+            assert isinstance(logger, logging.Logger)
+            logger.info('test message')
+            import os
+            files = os.listdir(tmpdir)
+            assert len(files) > 0
+
+    def test_i18n(self):
+        """测试国际化"""
+        i18n = I18nManager()
+        assert i18n.t('app.name') == 'MS Comfy Studio Pro'
+        i18n.set_locale('en-US')
+        assert i18n.t('app.name') == 'MS Comfy Studio Pro'
+
+    def test_gpu_detector(self):
+        """测试 GPU 检测（失败不影响其他测试）"""
+        detector = GPUDetector()
+        info = detector.detect()
+        assert info is not None
+        assert info.gpu_type is not None
+
+    def test_gpu_detector_no_crash_on_nvidia_error(self):
+        """测试 NVIDIA 检测失败时不崩溃"""
+        detector = GPUDetector()
+        info = detector._detect_nvidia()
+        assert info is not None
+        assert info.gpu_type.value == 'unknown' or info.name == ''
+
+    def test_gpu_system_info(self):
+        """测试系统信息获取"""
+        detector = GPUDetector()
+        sys_info = detector.get_system_info()
+        assert sys_info is not None
+        assert sys_info.python_version != ''
+        assert sys_info.os_name != ''
+
+    def test_health_checker(self):
+        """测试健康检查"""
+        hc = HealthChecker(project_root=str(_PROJECT_ROOT))
+        summary = hc.get_summary()
+        assert 'overall' in summary
+        assert 'passed' in summary
+
+    def test_model_manager(self):
+        """测试模型管理器初始化"""
+        mm = ModelManager(project_root=str(_PROJECT_ROOT))
+        assert mm is not None
+        stats = mm.get_storage_stats()
+        assert 'total_bytes' in stats
+        assert 'indexed_count' in stats
+
+    def test_node_manager(self):
+        """测试节点管理器初始化"""
+        nm = NodeManager(comfyui_dir=str(_PROJECT_ROOT / 'comfyui'))
+        assert nm is not None
+
+    def test_workflow_manager(self):
+        """测试工作流管理器初始化"""
+        wm = WorkflowManager(workflows_dir=str(_PROJECT_ROOT / 'data' / 'workflows'))
+        assert wm is not None

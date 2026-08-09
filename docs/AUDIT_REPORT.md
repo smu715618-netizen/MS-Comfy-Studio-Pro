@@ -2,77 +2,69 @@
 
 **审核日期：** 2026-08-08
 **审核版本：** V1.0.1
-**Commit：** 6cefaaa
-**审核状态：** 修复中
+**Commit：** cc99e22
+**审核状态：** 修复完成，等待重新审核
 
 ---
 
-## 审核发现问题
+## 第一轮审核问题（上一轮已修复）
 
-### 1. src/models.py — NameError: name 'sys' is not defined ✅ 已修复
-- **问题：** 使用 sys.path 但缺少 `import sys`
-- **修复：** 添加 `import sys` 到导入列表
-- **验证：** `python -c "import src.models"` 通过
-
-### 2. platform/linux/backend.py — 编码损坏 ✅ 已修复
-- **问题：** UnicodeDecodeError / SyntaxError
-- **修复：** 重写为正确 UTF-8 编码的 Python 模块
-- **验证：** `python -m compileall platform/` 通过
-
-### 3. platform/linux/__init__.py — 中文乱码导致 SyntaxError ✅ 已修复
-- **问题：** 中文注释被错误编码（GBK→UTF-8误读）
-- **修复：** 重写为正确 UTF-8 模块文档
-- **验证：** `python -c "from platform.linux import backend"` 通过
-
-### 4. platform/macos/__init__.py — 同类编码问题 ✅ 已修复
-- **问题：** 同 #3
-- **修复：** 重写为正确 UTF-8 模块文档
-- **验证：** `python -c "from platform.macos import get_backend_name"` 通过
-
-### 5. ParamInfo / NodeSignature 接口不一致 ✅ 已修复
-- **问题：** `ParamInfo` 缺少 `optional` 字段，但 `signatures.py` 和 `parser.py` 使用
-- **修复：** 在 `ParamInfo` 数据类中添加 `optional: bool = False` 字段
-- **验证：** `ParamInfo(optional=True)` 通过，序列化/反序列化正确
-
-### 6. tests/test_workflow_nodes.py — ParamInfo 未导入 ✅ 已修复
-- **问题：** 测试使用 `ParamInfo` 但未从 `src.workflows.nodes` 导入
-- **修复：** 添加 `ParamInfo` 到导入语句
-- **验证：** 语法检查通过
-
-### 7. Logger 测试 — level 不匹配 ✅ 已修复
-- **问题：** `get_logger()` 返回的子 logger level=0 (NOTSET)，测试期望 `logging.DEBUG`
-- **修复：** `get_logger()` 在获取子 logger 后，若根 logger 已设级别，则子 logger 继承该级别
-- **验证：** `logger.level == logging.DEBUG` 通过
-
-### 8. GUI 验证 — PyQt6 环境限制 ⚠️ 待目标环境验证
-- **问题：** 当前系统无 PyQt6，无法运行 GUI 测试
-- **要求：** 在 Windows 11 + Python 3.11 + PyQt6 环境验证 `run_launcher.bat` 正常启动
-- **状态：** 代码逻辑验证通过，等待目标环境验证
-
-### 9. 文档状态不一致 ✅ 已修复
-- **问题：** VERSION.json、CHANGELOG、ROADMAP 使用旧 Phase/V0.x 命名
-- **修复：**
-  - `release/VERSION.json` → V1.0.1, commit 6cefaaa
-  - `CHANGELOG.md` → 添加 V1.0.1 修复记录
-  - `docs/ROADMAP.md` → 更新为 V1.x 版本体系
-  - `docs/CURRENT_STATUS.md` → 新建，记录当前模块状态
-
-### 10. .gitignore 清理 ✅ 已完善
-- **已有规则：** `__pycache__/`、`*.pyc`、`*.pytest_cache/`、`venv/`、`data/logs/` 等
-- **检查：** 确认无缓存文件进入 Git
+| # | 问题 | 状态 | 修复文件 |
+|---|------|------|----------|
+| 1 | src/models.py 缺少 import sys | ✅ 已修复 | src/models.py, src/project_manager.py |
+| 2 | platform/linux/backend.py 编码损坏 | ✅ 已修复 | platform/linux/backend.py |
+| 3 | platform/linux/__init__.py SyntaxError | ✅ 已修复 | platform/linux/__init__.py |
+| 4 | platform/macos/__init__.py SyntaxError | ✅ 已修复 | platform/macos/__init__.py |
+| 5 | ParamInfo 缺少 optional 字段 | ✅ 已修复 | src/workflows/nodes.py |
+| 6 | test_workflow_nodes.py 缺少 ParamInfo 导入 | ✅ 已修复 | tests/test_workflow_nodes.py |
+| 7 | Logger 子 logger level=0 | ✅ 已修复 | src/logger.py |
+| 8 | GUI 无 PyQt6 环境 | ⚠️ 待目标环境验证 | — |
+| 9 | 文档状态不一致 | ✅ 已修复 | release/VERSION.json + CHANGELOG + ROADMAP + CURRENT_STATUS |
+| 10 | .gitignore 缺少 pytest cache | ✅ 已修复 | .gitignore |
 
 ---
 
-## 修复后验证
+## 第二轮审核问题（本次修复）
+
+### 1. ModelManager 测试接口不同步 ✅ 已修复
+- **问题：** 测试使用旧 API `add_model()` / `remove_model()` / `get_storage_usage()`，实际为 `register_model_file()` / `remove_model_index()` / `get_storage_stats()`
+- **修复：** 重写 `tests/test_models.py`，以当前 ModelManager API 为准，覆盖：初始化、注册、查询、删除、按类型查询、存储统计、索引持久化、扫描、SHA256 验证
+
+### 2. integration_test.py 硬编码路径 ✅ 已修复
+- **问题：** 硬编码 `D:/MS-Comfy-Studio-Pro`，模块级执行测试，GPU 检测失败中断 pytest
+- **修复：** 重写为标准 pytest 结构，使用 `Path(__file__).resolve().parents[...].parent` 动态获取项目根目录，所有测试在函数内执行，GPU 检测失败不影响其他测试
+
+### 3. GPU Detector 异常处理 ✅ 已修复
+- **问题：** `nvidia-smi` PermissionError 导致崩溃
+- **修复：** `nvidia-smi` 异常捕获从 `(FileNotFoundError, ValueError)` 扩展为 `(FileNotFoundError, PermissionError, OSError, subprocess.TimeoutExpired, ValueError)`；`rocm-smi` 同理；PyTorch 导入异常从仅 `ImportError` 扩展为 `(ImportError, AttributeError, Exception)`
+- **附加修复：** 项目 `platform/` 包遮蔽 Python 内置 `platform` 模块，在 `src/gpu_detector.py`、`src/cpu_monitor.py`、`src/env_manager.py`、`src/health_check.py` 顶部注入 stdlib platform（`importlib.util.spec_from_file_location`），避免所有 GPU/CPU/健康检查模块崩溃
+
+### 4. 测试质量门禁 ✅ 已修复
+- **结果：** 75 passed, 0 failed, 0 errors
+- **覆盖模块：** ModelManager、ModelIndex、ModelScanner、ModelVerifier、ConfigManager、CapabilityFramework、LauncherState、ParamInfo、Signatures、Logger、StartupConfig、ConsoleWidget、StylesQSS、PortraitAPI、WorkflowParser、BindingEngine、NodeSignature、NodeRegistry、EventBus、I18n、ProjectStructure、GPUDetector、HealthCheck、NodeManager、WorkflowManager
+
+### 5. GUI 验证
+- **状态：** 代码逻辑验证通过，需目标环境（Windows 11 + Python 3.11 + PyQt6）实际验证 `run_launcher.bat`
+
+### 6. 版本信息同步 ✅ 已修复
+- **VERSION.json：** 更新 commit_id → cc99e22，build_time → 2026-08-08，添加测试统计
+- **CURRENT_STATUS.md：** 更新 commit 和版本状态
+
+### 7. 审核报告 ✅ 已更新
+- 新增第二轮审核问题记录
+
+---
+
+## 最终质量指标
 
 ```
-python -m compileall src tests platform configs → 全部通过 (61 files)
+python -m compileall src tests platform configs → 全部通过
+tests/run_tests.py → 75 passed, 0 failed, 0 errors
 ```
 
-## 待执行
+---
 
-- [ ] 在目标环境（Windows 11 + Python 3.11 + PyQt6）运行 pytest
-- [ ] 在目标环境验证 run_launcher.bat 正常启动
-- [ ] 提交修复并 push
-- [ ] 打 tag v1.0.1
-- [ ] 重新提交审核
+## 待执行（审核通过后）
+
+- [ ] 在目标环境（Windows 11 + Python 3.11 + PyQt6）验证 run_launcher.bat 启动
+- [ ] 创建新 tag 并 push

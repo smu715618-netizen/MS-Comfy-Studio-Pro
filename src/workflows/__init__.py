@@ -17,6 +17,18 @@ from src.workflows.nodes import NodeSignature, NodeType, ParamType, NodeRegistry
 from src.workflows.parser import Workflow, NodeInstance, Connection
 from src.workflows.bindings import Binding, BindingEngine
 
+# WorkflowManager lives in src/workflows.py (a module, not the package).
+# Use importlib to load it without circular import.
+import importlib.util as _ilu, sys as _sys, pathlib as _pl
+_wf_py = _pl.Path(__file__).parent.parent / "workflows.py"
+if _wf_py.exists():
+    _wf_spec = _ilu.spec_from_file_location("src_workflows_module", _wf_py)
+    _wf_mod = _ilu.module_from_spec(_wf_spec)
+    _wf_spec.loader.exec_module(_wf_mod)
+    WorkflowManager = _wf_mod.WorkflowManager
+else:
+    WorkflowManager = None
+
 __all__ = [
     "NodeSignature",
     "NodeType",
@@ -27,4 +39,5 @@ __all__ = [
     "Connection",
     "Binding",
     "BindingEngine",
+    "WorkflowManager",
 ]
