@@ -714,17 +714,29 @@ class NodeManager:
                 with open(self._index_file, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                 for name, info_data in data.items():
+                    # Restore relative paths to absolute
+                    if info_data.get("directory"):
+                        dir_path = Path(info_data["directory"])
+                        if not dir_path.is_absolute():
+                            info_data["directory"] = str(self._project_root / dir_path)
                     self._nodes[name] = NodeInfo.from_dict(info_data)
             except Exception as e:
                 logger.warning(f"加载节点索引失败: {e}")
 
     def _save_index(self):
         try:
+            data = {}
+            for k, v in self._nodes.items():
+                d = v.to_dict()
+                # Store relative paths to avoid writing machine-specific absolute paths
+                if d.get("directory"):
+                    try:
+                        d["directory"] = str(Path(d["directory"]).relative_to(self._project_root))
+                    except ValueError:
+                        pass  # Not under project root, keep original
+                data[k] = d
             with open(self._index_file, 'w', encoding='utf-8') as f:
-                json.dump(
-                    {k: v.to_dict() for k, v in self._nodes.items()},
-                    f, indent=2, ensure_ascii=False
-                )
+                json.dump(data, f, indent=2, ensure_ascii=False)
         except Exception as e:
             logger.error(f"保存节点索引失败: {e}")
 
