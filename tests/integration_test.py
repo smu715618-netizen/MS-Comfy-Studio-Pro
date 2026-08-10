@@ -15,21 +15,6 @@ from pathlib import Path
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 
-# 注入 stdlib platform 到 sys.modules，防止被项目 platform/ 包遮蔽
-# 必须在任何其他 import 之前执行
-import importlib.util as _ilu
-import os as _os
-for _p in sys.path:
-    if 'Lib' in _p and _os.path.isdir(_p):
-        _pf = _os.path.join(_p, 'platform.py')
-        if _os.path.exists(_pf):
-            _spec = _ilu.spec_from_file_location('platform', _pf)
-            _mod = _ilu.module_from_spec(_spec)
-            _spec.loader.exec_module(_mod)
-            sys.modules['platform'] = _mod
-            break
-del _ilu, _os, _p, _pf, _spec, _mod
-
 from src.config_manager import ConfigManager, get_config
 from src.logger import setup_logging, get_logger
 from src.i18n import I18nManager
