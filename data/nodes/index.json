@@ -1,1 +1,25 @@
-{}
+{
+  "comfyui": {
+    "name": "comfyui",
+    "display_name": "ComfyUI 内置 (comfyui)",
+    "node_type": "builtin",
+    "source": "enterprise",
+    "status": "enabled",
+    "version": "",
+    "latest_version": "",
+    "description": "ComfyUI 内置核心节点",
+    "author": "ComfyUI Team",
+    "homepage": "",
+    "directory": "comfyui",
+    "requirements": [],
+    "compatible_gpus": [
+      "all"
+    ],
+    "min_comfyui_version": "",
+    "tags": [],
+    "last_checked": "",
+    "error_message": "",
+    "installed_at": "",
+    "updated_at": ""
+  }
+}

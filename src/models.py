@@ -75,7 +75,7 @@ class ModelType(Enum):
         formats = {
             ModelType.CHECKPOINT: [".safetensors", ".ckpt", ".bin"],
             ModelType.LORA: [".safetensors", ".ckpt"],
-            ModelType.VAE: [".safetensors", ".ckpt"],
+            ModelType.VAE: [".safetensors", ".ckpt", ".pt"],
             ModelType.CLIP: [".safetensors", ".pt", ".bin"],
             ModelType.UNET: [".safetensors", ".bin"],
             ModelType.CONTROLNET: [".safetensors", ".pt"],

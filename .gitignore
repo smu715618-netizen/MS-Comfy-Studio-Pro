@@ -120,3 +120,4 @@ assets/icons/*.png
 assets/icons/*.ico
 assets/logos/*.png
 assets/logos/*.svg
+data/nodes/index.json
