@@ -1,13 +1,13 @@
 {
-    "version": "1.0.2",
-    "commit_id": "c4d6845",
-    "git_tag": "v1.0.2",
-    "build_time": "2026-08-08T22:50:00+08:00",
+    "version": "1.0.3",
+    "commit_id": "f763d09",
+    "git_tag": "v1.0.3",
+    "build_time": "2026-08-10T16:00:00+08:00",
     "platform": "Windows 11 + Intel Arc A750 8GB",
     "python_requires": ">=3.11",
     "gui_framework": "PyQt6",
     "status": "ready_for_audit",
-    "last_audit": "2026-08-08",
+    "last_audit": "2026-08-10",
     "audit_passed": false,
     "python_files": 61,
     "tests": {
