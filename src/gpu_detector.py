@@ -260,7 +260,13 @@ class GPUDetector:
                         info.driver_version = parts[2]
                     info.cuda_supported = True
                     return info
-        except (FileNotFoundError, ValueError) as e:
+        except (
+            FileNotFoundError,
+            PermissionError,
+            OSError,
+            subprocess.TimeoutExpired,
+            ValueError,
+        ) as e:
             logger.debug(f"NVIDIA 检测失败: {e}")
 
         return info
@@ -281,8 +287,14 @@ class GPUDetector:
                     info.name = lines[0].strip()
                     info.rocm_supported = True
                     return info
-        except FileNotFoundError:
-            pass  # rocm-smi 不存在
+        except (
+            FileNotFoundError,
+            PermissionError,
+            OSError,
+            subprocess.TimeoutExpired,
+            ValueError,
+        ):
+            pass  # rocm-smi 不存在或执行异常
 
         # 备用: 通过 DirectX 检测
         try:

@@ -4,8 +4,15 @@
 
 ## [Unreleased]
 
-### 待修复
-- 全部审核问题已定位，正在修复中（详见下方各版本记录）
+---
+
+## [1.0.5] — 2026-08-13 — GPU 检测异常处理加固
+
+### 修复
+- **src/gpu_detector.py**: `_detect_nvidia()` 异常捕获从 `(FileNotFoundError, ValueError)` 扩展为 `(FileNotFoundError, PermissionError, OSError, subprocess.TimeoutExpired, ValueError)`；`_detect_amd()` 同步扩展；确保 nvidia-smi/rocm-smi 不存在/无权限/超时/格式异常时正常降级到 CPU 模式
+- **release/VERSION.json**: 版本更新到 1.0.5，测试统计更新为 110/110
+- **docs/CURRENT_STATUS.md**: 同步当前 HEAD 和测试统计
+- **docs/AI_CONTEXT.md**: 新增，记录项目架构和开发规则
 
 ---
 
