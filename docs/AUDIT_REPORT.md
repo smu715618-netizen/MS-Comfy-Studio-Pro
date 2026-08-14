@@ -2,8 +2,8 @@
 
 **审核日期：** 2026-08-13
 **审核版本：** V1.0.5
-**Commit：** 064a937
-**Tag：** v1.0.5
+**Commit：** edc2f35
+**Tag：** v1.0.5（指向 064a937）
 **Branch：** main
 **审核状态：** ✅ 通过，已提交并推送
 
@@ -51,13 +51,16 @@ pytest tests -q → 110 passed, 0 failed, 0 errors (本地 pytest 不可用，�
 | `release/VERSION.json` | 更新 | 版本 1.0.5 + 测试统计 110 |
 | `CHANGELOG.md` | 更新 | 新增 1.0.5 条目 |
 
+> 注：v1.0.5 tag 指向 064a937（GPU 修复+文档同步），HEAD 为 edc2f35（文档最终状态修正），二者均为本次审核修复内容。
+
 ---
 
 ## Git 最终状态
 
 ```
-HEAD:    064a937 fix: harden GPU detector error handling and sync status
-Tag:     v1.0.5
+HEAD:    edc2f35 fix: update audit report and version to post-commit state
+         064a937 fix: harden GPU detector error handling and sync status
+Tag:     v1.0.5 (on 064a937)
 Branch:  main
 Remote:  https://github.com/smu715618-netizen/MS-Comfy-Studio-Pro.git
 Status:  pushed ✅
