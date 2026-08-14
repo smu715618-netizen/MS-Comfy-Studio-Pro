@@ -1,7 +1,7 @@
 {
     "version": "1.0.5",
-    "commit_id": "4248507",
-    "git_tag": "v1.0.4",
+    "commit_id": "064a937",
+    "git_tag": "v1.0.5",
     "build_time": "2026-08-13T10:00:00+08:00",
     "platform": "Windows 11",
     "python_requires": ">=3.11",
