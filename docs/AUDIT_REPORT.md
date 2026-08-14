@@ -2,7 +2,7 @@
 
 **审核日期：** 2026-08-13
 **审核版本：** V1.0.5
-**Commit：** d8dbb88
+**Commit：** cb26beb
 **Tag：** v1.0.5（指向 064a937）
 **Branch：** main
 **审核状态：** ✅ 通过，已提交并推送
@@ -58,7 +58,8 @@ pytest tests -q → 110 passed, 0 failed, 0 errors (本地 pytest 不可用，�
 ## Git 最终状态
 
 ```
-HEAD:    d8dbb88 fix: update AUDIT_REPORT final state
+HEAD:    cb26beb fix: update AUDIT_REPORT HEAD to d8dbb88
+         d8dbb88 fix: update AUDIT_REPORT final state
          edc2f35 fix: update audit report and version to post-commit state
          064a937 fix: harden GPU detector error handling and sync status
 Tag:     v1.0.5 (on 064a937)
