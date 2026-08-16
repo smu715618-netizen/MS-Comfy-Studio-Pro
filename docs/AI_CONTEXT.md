@@ -44,9 +44,9 @@ MS Comfy Studio Pro 是一个基于 ComfyUI 的桌面启动器与管理平台，
 
 ## 当前分支：main
 
-**最新 Commit：** `4248507` @Fix: 移除integration_test.py中脆弱的platform注入代码  
-**Tag：** v1.0.4（v1.0.5 待本次提交后创建）  
-**发布日期：** 2026-08-10
+**最新 Commit：** `cf79c65` @test: stabilize and align test suite  
+**Tag：** v1.0.6  
+**发布日期：** 2026-08-13
 
 ---
 
