@@ -37,17 +37,30 @@ class _MockObject:
     def __getattr__(self, name):
         return _MockObject()
 
+    def fonts(*args, **kwargs):
+        return _MockFonts()
+
+class _MockFonts:
+    def isFontAvailable(self, name):
+        return True
+
+# Make Qt.fonts() work as class method too
+_QtFontsInstance = _MockFonts()
+def _mock_fonts(*args, **kwargs):
+    return _QtFontsInstance
+
+
 
 def _install_qt_mocks():
     """安装 PyQt6 mock 模块"""
     modules = {
-        "PyQt6.QtWidgets": ["QWidget", "QMainWindow", "QVBoxLayout", "QHBoxLayout",
+        "PyQt6.QtWidgets": ["QWidget", "QMainWindow", "QApplication", "QVBoxLayout", "QHBoxLayout",
                             "QGridLayout", "QStackedWidget", "QFrame", "QLabel",
                             "QPushButton", "QToolBar", "QStatusBar", "QMessageBox",
                             "QTabWidget", "QGroupBox", "QTextEdit", "QProgressBar",
                             "QLineEdit", "QSpinBox", "QCheckBox", "QListWidget",
                             "QListWidgetItem", "QComboBox"],
-        "PyQt6.QtCore": ["Qt", "QTimer", "QUrl", "pyqtSignal"],
+        "PyQt6.QtCore": ["Qt", "QTimer", "QUrl", "pyqtSignal", "QSize", "fonts"],
         "PyQt6.QtGui": ["QFont", "QAction", "QColor", "QDesktopServices"],
         "PyQt6": ["Qt"],
     }

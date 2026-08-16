@@ -23,39 +23,56 @@ class TestLoggerManager:
 
     def test_setup(self):
         """测试日志初始化"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            setup_logging(
-                log_level="DEBUG",
-                log_dir=tmpdir,
-                console_output=False,
-            )
-            logger = get_logger("test")
+        import logging as _logging
+        LoggerManager._instance = None
+        _tmpdir = tempfile.mkdtemp()
+        try:
+            setup_logging(log_level="DEBUG", log_dir=_tmpdir, console_output=False)
+            logger = get_logger("test_logger_v2")
             assert isinstance(logger, logging.Logger)
             assert logger.level == logging.DEBUG
+        finally:
+            _logging.getLogger().handlers.clear()
+            _logging.shutdown()
+            import shutil
+            shutil.rmtree(_tmpdir, ignore_errors=True)
 
     def test_get_logger(self):
         """测试获取日志记录器"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            setup_logging(log_dir=tmpdir, console_output=False)
-            logger = get_logger("test_module")
-            assert logger.name == "test_module"
+        import logging as _logging
+        LoggerManager._instance = None
+        _tmpdir = tempfile.mkdtemp()
+        try:
+            setup_logging(log_dir=_tmpdir, console_output=False)
+            logger = get_logger("test_module_v2")
+            assert logger.name == "test_module_v2"
+        finally:
+            _logging.getLogger().handlers.clear()
+            _logging.shutdown()
+            import shutil
+            shutil.rmtree(_tmpdir, ignore_errors=True)
 
     def test_log_levels(self):
         """测试各级别日志"""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            setup_logging(log_level="DEBUG", log_dir=tmpdir, console_output=False)
-            logger = get_logger("test_levels")
-
-            logger.debug("debug message")
-            logger.info("info message")
-            logger.warning("warning message")
-            logger.error("error message")
-            logger.critical("critical message")
-
-            # 验证日志文件已创建
+        import logging as _logging
+        LoggerManager._instance = None
+        _tmpdir = tempfile.mkdtemp()
+        try:
+            setup_logging(log_level="DEBUG", log_dir=_tmpdir, console_output=False)
+            logger = get_logger("test_levels_v2")
+            logger.debug("debug")
+            logger.info("info")
+            logger.warning("warning")
+            logger.error("error")
+            logger.critical("critical")
             import os
-            files = os.listdir(tmpdir)
+            files = os.listdir(_tmpdir)
             assert len(files) > 0
+        finally:
+            _logging.getLogger().handlers.clear()
+            _logging.shutdown()
+            import shutil
+            shutil.rmtree(_tmpdir, ignore_errors=True)
 
 
 if __name__ == "__main__":

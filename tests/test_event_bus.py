@@ -13,7 +13,7 @@ from src.core.event_bus import EventBus, Event
 class TestEventBus:
     """测试事件总线"""
 
-    def setup_method(self):
+    def setup_method(self, method):
         """每次测试前创建新的事件总线"""
         self.bus = EventBus()
         self.received_events = []

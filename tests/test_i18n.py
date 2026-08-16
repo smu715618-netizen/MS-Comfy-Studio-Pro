@@ -13,7 +13,7 @@ from src.i18n import I18nManager
 class TestI18nManager:
     """测试国际化管理器"""
 
-    def setup_method(self):
+    def setup_method(self, method):
         """每次测试前创建新的 I18nManager"""
         self.i18n = I18nManager()
 

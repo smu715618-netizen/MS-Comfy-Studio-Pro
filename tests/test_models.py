@@ -418,8 +418,8 @@ class TestModelScanner:
             scanner = ModelScanner(model_dir)
             results = scanner.scan_by_type(ModelType.CHECKPOINT)
             names = {r.name for r in results}
-            assert "model1" in names
-            assert "model2" in names
+            assert "model1.safetensors" in names
+            assert "model2.ckpt" in names
             assert ".hidden" not in names
 
     def test_scan_nonexistent_type(self):

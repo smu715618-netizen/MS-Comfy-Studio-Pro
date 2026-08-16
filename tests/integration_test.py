@@ -95,7 +95,7 @@ class TestIntegration:
 
     def test_node_manager(self):
         """测试节点管理器初始化"""
-        nm = NodeManager(comfyui_dir=str(_PROJECT_ROOT / 'comfyui'))
+        nm = NodeManager(project_root=str(_PROJECT_ROOT))
         assert nm is not None
 
     def test_workflow_manager(self):

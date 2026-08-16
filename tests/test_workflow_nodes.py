@@ -82,8 +82,9 @@ class TestNodeRegistry:
 
     def test_get_all(self):
         """测试获取所有签名"""
+        from src.workflows import signatures  # ensure predefined signatures are loaded
         all_sigs = NodeRegistry.get_all()
-        assert len(all_sigs) > 0  # 应该至少有预定义的签名
+        assert len(all_sigs) >= 10  # 应该至少有预定义的10个签名
 
     def test_predefined_signatures_loaded(self):
         """测试预定义签名已加载"""
