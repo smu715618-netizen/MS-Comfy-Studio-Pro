@@ -44,7 +44,7 @@ MS Comfy Studio Pro 是一个基于 ComfyUI 的桌面启动器与管理平台，
 
 ## 当前分支：main
 
-**最新 Commit：** `cf79c65` @test: stabilize and align test suite  
+**最新 Commit：** `ee89721` docs: sync to final release state v1.0.6  
 **Tag：** v1.0.6  
 **发布日期：** 2026-08-13
 
